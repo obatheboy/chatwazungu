@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+
 const prompts = [
   'professional portrait of a young caucasian woman, curly blonde hair, wearing a red silk blouse, studio lighting, plain white background, photorealistic, sharp focus, 8k',
   'professional portrait of a young caucasian man, short brown hair, wearing a navy blue suit jacket, studio lighting, plain gray background, photorealistic, sharp focus, 8k',
