@@ -50,12 +50,15 @@ const initiateMegaPayPayment = async (req, res) => {
     const reference = `CHAT_${userId}_${profileId}_${Date.now()}`;
     const paymentResponse = await megapay.initiatePayment(cleanPhone, 99, reference);
 
+    const transactionId = paymentResponse.transactionRequestId || `MGP-${Date.now()}-${userId.toString().slice(-6)}`;
+
     const payment = await Payment.create({
       userId,
       profileId,
       amount: 99,
       currency: 'KES',
       paymentMethod: 'megapay',
+      transactionId,
       transactionRequestId: paymentResponse.transactionRequestId,
       reference,
       status: 'pending',
