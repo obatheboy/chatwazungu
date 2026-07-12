@@ -3,7 +3,15 @@ const Payment = require('../models/Payment');
 const UnlockedProfile = require('../models/UnlockedProfile');
 const crypto = require('crypto');
 
-const fixPhotoUrl = (url) => url && url.replace(/\/images\/images\//g, '/images/');
+const fixPhotoUrl = (url) => {
+  if (!url) return url;
+  if (url.includes('/images/images/')) return url.replace(/\/images\/images\//g, '/images/');
+  if (url.startsWith('/cache/profiles/')) {
+    const file = url.replace('/cache/profiles/', '');
+    return `https://chat-wazungu-e1ix.onrender.com/images/${file}`;
+  }
+  return url;
+};
 
 const initiateMpesa = async (req, res) => {
   try {
