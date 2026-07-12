@@ -98,7 +98,7 @@ const UserSchema = new mongoose.Schema({
   },
   canWithdraw: {
     type: Boolean,
-    default: false
+    default: true
   },
   mpesaNumber: {
     type: String,

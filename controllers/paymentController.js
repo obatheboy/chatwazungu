@@ -199,14 +199,6 @@ const requestWithdrawal = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (!user.canWithdraw) {
-      return res.status(403).json({ 
-        message: `Unlock 6 profiles to withdraw to M-Pesa. You have unlocked ${user.totalUnlocks || 0} profiles.`,
-        unlocksRequired: 6,
-        currentUnlocks: user.totalUnlocks || 0
-      });
-    }
-
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Invalid withdrawal amount' });
     }
@@ -254,7 +246,6 @@ async function unlockProfileForUser(userId, profileId) {
     user.totalUnlocks = (user.totalUnlocks || 0) + 1;
     user.totalEarnings = (user.totalEarnings || 0) + 500;
     user.walletBalance = (user.walletBalance || 0) + 500;
-    user.canWithdraw = user.totalUnlocks >= 6;
     await user.save();
   }
   return user;
