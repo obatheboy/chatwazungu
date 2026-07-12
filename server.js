@@ -14,6 +14,7 @@ const chatRoutes = require('./routes/chats');
 const adminRoutes = require('./routes/admin');
 const smsRoutes = require('./routes/sms');
 const dummyRoutes = require('./routes/dummy');
+const imageRoutes = require('./routes/images');
 
 // Create express app
 const app = express();
@@ -102,6 +103,9 @@ app.use('/api/dummy', dummyRoutes);
 
 // Serve cached profile images
 app.use('/cache', express.static(path.join(__dirname, 'public/cache')));
+
+// Generate + cache HD profile images on demand
+app.use('/images', imageRoutes);
 
 // Test Route
 app.get('/api/health', (req, res) => {

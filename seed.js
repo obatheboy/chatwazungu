@@ -3,10 +3,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 
-const WOMEN_PHOTO_COUNT = 35;
-const MEN_PHOTO_COUNT = 35;
-const femalePhotos = Array.from({ length: WOMEN_PHOTO_COUNT }, (_, i) => `https://i.pravatar.cc/1000?img=${i + 1}`);
-const malePhotos = Array.from({ length: MEN_PHOTO_COUNT }, (_, i) => `https://i.pravatar.cc/1000?img=${36 + i}`);
+const IMAGE_BASE = process.env.IMAGE_BASE_URL || 'https://chat-wazungu-e1ix.onrender.com';
+const femalePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/woman_${i + 1}.jpg`);
+const malePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/man_${i + 1}.jpg`);
 
 const women = [
   'Emma Smith', 'Olivia Johnson', 'Ava Williams', 'Sophia Brown', 'Isabella Jones',
