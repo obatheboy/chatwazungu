@@ -1,4 +1,15 @@
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+
+const IMAGES_DIR = path.join(__dirname, '../public/cache/images');
+fs.mkdirSync(IMAGES_DIR, { recursive: true });
+
+const HD_MIN_BYTES = 30000;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const prompts = [
+  // 1-20 alternating woman/man
   'professional portrait of a young caucasian woman, curly blonde hair, wearing a red silk blouse, studio lighting, plain white background, photorealistic, sharp focus, 8k',
   'professional portrait of a young caucasian man, short brown hair, wearing a navy blue suit jacket, studio lighting, plain gray background, photorealistic, sharp focus, 8k',
   'professional portrait of a young caucasian woman, long black hair, wearing a green sweater, outdoor cafe background, natural lighting, photorealistic, sharp focus, 8k',
@@ -21,72 +32,58 @@ const prompts = [
   'professional portrait of a young caucasian man, undercut hairstyle, wearing a denim vest, music venue background, stage lighting, photorealistic, sharp focus, 8k',
 ];
 
-const IMAGES_DIR = path.join(__dirname, '../public/cache/images');
-fs.mkdirSync(IMAGES_DIR, { recursive: true });
-const HD_MIN_BYTES = 30000;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function fetchPollinations(prompt, seed) {
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=1000&seed=${seed}&nologo=true&model=flux`;
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) throw new Error('status ' + res.status);
-  const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length < HD_MIN_BYTES) throw new Error('image too small');
-  return buf;
+const genders = [];
+for (let i = 0; i < 20; i++) {
+  genders.push(i % 2 === 0 ? 'woman' : 'man');
 }
 
-async function getProcessedImage(file) {
-  const processedPath = path.join(IMAGES_DIR, file.replace('.jpg', '_hd.jpg'));
-  if (fs.existsSync(processedPath) && fs.statSync(processedPath).size > HD_MIN_BYTES) {
-    return processedPath;
-  }
-
-  const sourcePath = path.join(IMAGES_DIR, file);
-  if (!fs.existsSync(sourcePath) || fs.statSync(sourcePath).size <= HD_MIN_BYTES) {
-    return null;
-  }
-
-  await sharp(sourcePath)
-    .resize(800, 1000, { fit: 'cover', position: 'top' })
-    .jpeg({ quality: 90, mozjpeg: true })
-    .toFile(processedPath);
-
-  return processedPath;
-}
-
-const generateImage = async (req, res) => {
-  try {
-    const file = req.params.file;
-    const m = /^(woman|man)_(\d+)\.jpg$/.exec(file || '');
-    if (!m) return res.status(400).json({ message: 'Invalid image name' });
-
-    const gender = m[1];
-    const index = parseInt(m[2], 10);
-    const localPath = path.join(IMAGES_DIR, file);
-    const promptIndex = index - 1;
-    const prompt = prompts[promptIndex] || prompts[0];
-
-    if (!fs.existsSync(localPath) || fs.statSync(localPath).size <= HD_MIN_BYTES) {
-      try {
-        const buf = await fetchPollinations(prompt, index + 42);
-        fs.writeFileSync(localPath, buf);
-      } catch (e) {
-        return res.status(404).json({ message: 'Image not found' });
+function downloadImage(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (response) => {
+      if (response.statusCode === 200) {
+        const chunks = [];
+        response.on('data', chunk => chunks.push(chunk));
+        response.on('end', () => resolve(Buffer.concat(chunks)));
+      } else {
+        reject(new Error(`HTTP ${response.statusCode}`));
       }
-    }
+    }).on('error', reject);
+  });
+}
 
-    const processedPath = await getProcessedImage(file);
-    if (processedPath) {
-      res.setHeader('Cache-Control', 'public, max-age=2592000');
-      return res.sendFile(processedPath);
-    }
+async function generate(index) {
+  const gender = genders[index];
+  const prompt = prompts[index];
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=1000&seed=${index + 42}&nologo=true&model=flux`;
+  const out = path.join(IMAGES_DIR, `${gender}_${index + 1}.jpg`);
 
-    res.setHeader('Cache-Control', 'public, max-age=2592000');
-    return res.sendFile(localPath);
-  } catch (error) {
-    console.error('generateImage error:', error);
-    res.status(500).json({ message: 'Server error' });
+  if (fs.existsSync(out) && fs.statSync(out).size > HD_MIN_BYTES) {
+    console.log(`⏭️  ${gender}_${index + 1} already exists`);
+    return;
   }
-};
 
-module.exports = { generateImage };
+  for (let attempt = 1; attempt <= 8; attempt++) {
+    try {
+      await sleep(3000);
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) throw new Error('status ' + res.status);
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length < HD_MIN_BYTES) throw new Error('image too small');
+      fs.writeFileSync(out, buf);
+      console.log(`✅ ${gender}_${index + 1} (${buf.length} bytes)`);
+      return;
+    } catch (e) {
+      process.stdout.write(`↻ ${gender}_${index + 1} retry ${attempt} (${e.message})\r`);
+      await sleep(Math.min(60000, 4000 * attempt));
+    }
+  }
+  console.log(`\n❌ FAILED ${gender}_${index + 1}`);
+}
+
+(async () => {
+  console.log('🎨 Generating 20 diverse alternating portraits...');
+  for (let i = 0; i < 20; i++) {
+    await generate(i);
+  }
+  console.log('\n🎉 All diverse images generated.');
+})();

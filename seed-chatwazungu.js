@@ -106,8 +106,11 @@ const maleBios = [
 // public/cache/images, served instantly by the /images route). This displays
 // reliably in the browser with no external CDN dependency.
 const IMAGE_BASE = (process.env.IMAGE_BASE_URL || 'https://chat-wazungu-e1ix.onrender.com').replace(/\/images\/?$/, '');
-const femalePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/woman_${i + 1}.jpg`);
-const malePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/man_${i + 1}.jpg`);
+
+const alternatingPhotos = Array.from({ length: 20 }, (_, i) => [
+  `${IMAGE_BASE}/images/woman_${i + 1}.jpg`,
+  `${IMAGE_BASE}/images/man_${i + 1}.jpg`
+]).flat();
 
 const counties = [
   'London', 'New York', 'Paris', 'Los Angeles', 'Dubai', 'Sydney',
@@ -151,24 +154,20 @@ async function seed() {
     const totalProfiles = 200;
     let createdCount = 0;
     let skippedCount = 0;
-    let femalePhotoIndex = 0;
-    let malePhotoIndex = 0;
+    let alternatingPhotoIndex = 0;
 
     for (const category of categories) {
       console.log(`\n📁 Seeding ${category.name} (${category.count})...`);
 
       const names = category.gender === 'female' ? femaleNames : maleNames;
       const bios = category.gender === 'female' ? femaleBios : maleBios;
-      let photoIndex = category.gender === 'female' ? femalePhotoIndex : malePhotoIndex;
 
       for (let i = 0; i < category.count; i++) {
         const baseName = names[i % names.length];
         const uniqueName = i >= names.length ? `${baseName} ${Math.floor(i / names.length) + 1}` : baseName;
         const bio = bios[i % bios.length];
-        const photo = category.gender === 'female'
-          ? femalePhotos[photoIndex % femalePhotos.length]
-          : malePhotos[photoIndex % malePhotos.length];
-        photoIndex++;
+        const photo = alternatingPhotos[alternatingPhotoIndex % alternatingPhotos.length];
+        alternatingPhotoIndex++;
         const county = getRandomCounty();
         
         const age = category.gender === 'female'
@@ -208,21 +207,14 @@ async function seed() {
         createdCount++;
         process.stdout.write(`\r${category.name}: ${createdCount}/${category.count} profiles created...`);
       }
-
-      if (category.gender === 'female') {
-        femalePhotoIndex = photoIndex;
-      } else {
-        malePhotoIndex = photoIndex;
-      }
     }
 
     console.log(`\n\n✅ Seeding complete!`);
     console.log(`   Created: ${createdCount} profiles`);
     console.log(`   Skipped: ${skippedCount} duplicates`);
     console.log(`   Total in DB: ${createdCount + skippedCount}`);
-    console.log(`   Female photos used: ${Math.min(femalePhotoIndex, 100)} unique`);
-    console.log(`   Male photos used: ${Math.min(malePhotoIndex, 100)} unique`);
-    console.log(`   Photo source: backend /images route (HD white caucasian, gender-matched; instant HD fallback + background AI upgrade)`);
+    console.log(`   Alternating photos used: ${alternatingPhotoIndex}`);
+    console.log(`   Photo source: backend /images route (diverse portraits with varied clothing, backgrounds, and styles)`);
     
     await mongoose.disconnect();
     console.log('👋 Disconnected from MongoDB');
