@@ -69,18 +69,23 @@ const generateDummyProfiles = async (req, res) => {
     let femalePhotoIndex = 0;
     let malePhotoIndex = 0;
 
-    const femaleCategories = Object.entries(dummyProfiles).filter(([cat]) => !cat.includes('Boy') && !cat.includes('Man'));
-    const maleCategories = Object.entries(dummyProfiles).filter(([cat]) => cat.includes('Boy') || cat.includes('Man'));
-
-    for (let i = 0; i < countPerCategory; i++) {
-      for (const [category, templates] of femaleCategories) {
+    for (const [category, templates] of Object.entries(dummyProfiles)) {
+      for (let i = 0; i < countPerCategory; i++) {
         const template = templates[i % templates.length];
         const name = template.names[i % template.names.length];
         const age = template.ages[i % template.ages.length];
         const bio = template.bios[i % template.bios.length];
         const county = counties[Math.floor(Math.random() * counties.length)];
-        const photo = femalePhotos[femalePhotoIndex % femalePhotos.length];
-        femalePhotoIndex++;
+        const gender = category.includes('Boy') || category.includes('Man') ? 'male' : 'female';
+        
+        let photo;
+        if (gender === 'female') {
+          photo = femalePhotos[femalePhotoIndex % femalePhotos.length];
+          femalePhotoIndex++;
+        } else {
+          photo = malePhotos[malePhotoIndex % malePhotos.length];
+          malePhotoIndex++;
+        }
 
         const dateOfBirth = new Date();
         dateOfBirth.setFullYear(dateOfBirth.getFullYear() - age);
@@ -92,48 +97,10 @@ const generateDummyProfiles = async (req, res) => {
 
         await User.create({
           fullName: name,
-          phoneNumber: `dummy${Date.now()}${createdCount}@chatwazungu.com`,
+          phoneNumber: `dummy${Date.now()}${i}@chatwazungu.com`,
           password: hashedPassword,
           dateOfBirth,
-          gender: 'female',
-          county,
-          bio,
-          profilePhoto: photo,
-          category,
-          lookingFor: getLookingFor(category),
-          isDummy: true,
-          isVerified: true,
-          isActive: true,
-          onlineStatus: Math.random() > 0.3 ? 'online' : 'offline',
-          tags: getRandomTags()
-        });
-
-        createdCount++;
-      }
-
-      for (const [category, templates] of maleCategories) {
-        const template = templates[i % templates.length];
-        const name = template.names[i % template.names.length];
-        const age = template.ages[i % template.ages.length];
-        const bio = template.bios[i % template.bios.length];
-        const county = counties[Math.floor(Math.random() * counties.length)];
-        const photo = malePhotos[malePhotoIndex % malePhotos.length];
-        malePhotoIndex++;
-
-        const dateOfBirth = new Date();
-        dateOfBirth.setFullYear(dateOfBirth.getFullYear() - age);
-
-        const existing = await User.findOne({ fullName: name, isDummy: true });
-        if (existing) continue;
-
-        const hashedPassword = await bcrypt.hash('dummy123', 10);
-
-        await User.create({
-          fullName: name,
-          phoneNumber: `dummy${Date.now()}${createdCount}@chatwazungu.com`,
-          password: hashedPassword,
-          dateOfBirth,
-          gender: 'male',
+          gender,
           county,
           bio,
           profilePhoto: photo,
