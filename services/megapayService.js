@@ -18,16 +18,34 @@ class MegaPayService {
         reference: reference
       });
 
-      if (response.data.success === '200') {
+      const data = response.data || {};
+      const success = data.success === '200' || data.success === 200 || data.status === 'success' || data.status === 200;
+      const isPinPrompt = data.message && data.message.toLowerCase().includes('enter your mpesa pin');
+
+      if (success || isPinPrompt) {
         return {
           success: true,
-          transactionRequestId: response.data.transaction_request_id,
-          message: response.data.message
+          transactionRequestId: data.transaction_request_id || data.transactionRequestId || data.transaction_request_id,
+          message: data.message || 'Payment initiated successfully'
         };
-      } else {
-        throw new Error(response.data.message || 'Payment initiation failed');
       }
+
+      const msg = data.message || data.error || 'Payment initiation failed';
+      console.error('MegaPay initiate rejected:', data);
+      throw new Error(msg);
     } catch (error) {
+      const data = error.response?.data || {};
+      const isPinPrompt = data.message && data.message.toLowerCase().includes('enter your mpesa pin');
+      const hasTransactionId = data.transaction_request_id || data.transactionRequestId || data.transaction_request_id;
+
+      if (isPinPrompt || (error.response?.status === 500 && hasTransactionId)) {
+        return {
+          success: true,
+          transactionRequestId: data.transaction_request_id || data.transactionRequestId || data.transaction_request_id,
+          message: data.message || 'Payment initiated successfully'
+        };
+      }
+
       console.error('MegaPay initiate error:', error.response?.data || error.message);
       throw error;
     }
