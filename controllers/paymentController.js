@@ -3,6 +3,8 @@ const Payment = require('../models/Payment');
 const UnlockedProfile = require('../models/UnlockedProfile');
 const crypto = require('crypto');
 
+const fixPhotoUrl = (url) => url && url.replace(/\/images\/images\//g, '/images/');
+
 const initiateMpesa = async (req, res) => {
   try {
     const { profileId, phoneNumber, amount = 99 } = req.body;
@@ -115,9 +117,17 @@ const getPaymentHistory = async (req, res) => {
       .populate('profileId', 'fullName profilePhoto category')
       .sort({ createdAt: -1 });
 
+    const fixedPayments = payments.map(p => {
+      const pObj = p.toObject();
+      if (pObj.profileId) {
+        pObj.profileId.profilePhoto = fixPhotoUrl(pObj.profileId.profilePhoto);
+      }
+      return pObj;
+    });
+
     res.json({
       success: true,
-      payments
+      payments: fixedPayments
     });
   } catch (error) {
     console.error(error);
@@ -132,6 +142,14 @@ const getWallet = async (req, res) => {
       .populate('unlockedUserId', 'fullName profilePhoto category bio onlineStatus lastSeen')
       .sort({ createdAt: -1 });
 
+    const fixedUnlocked = unlocked.map(u => {
+      const uObj = u.toObject();
+      if (uObj.unlockedUserId) {
+        uObj.unlockedUserId.profilePhoto = fixPhotoUrl(uObj.unlockedUserId.profilePhoto);
+      }
+      return uObj;
+    });
+
     const totalSpent = await Payment.aggregate([
       { $match: { userId: userId, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
@@ -142,12 +160,20 @@ const getWallet = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(20);
 
+    const fixedHistory = paymentHistory.map(p => {
+      const pObj = p.toObject();
+      if (pObj.profileId) {
+        pObj.profileId.profilePhoto = fixPhotoUrl(pObj.profileId.profilePhoto);
+      }
+      return pObj;
+    });
+
     res.json({
       success: true,
-      unlockedProfiles: unlocked,
+      unlockedProfiles: fixedUnlocked,
       totalSpent: totalSpent[0]?.total || 0,
-      count: unlocked.length,
-      paymentHistory
+      count: fixedUnlocked.length,
+      paymentHistory: fixedHistory
     });
   } catch (error) {
     console.error(error);

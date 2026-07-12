@@ -3,6 +3,8 @@ const UnlockedProfile = require('../models/UnlockedProfile');
 const User = require('../models/User');
 const axios = require('axios');
 
+const fixPhotoUrl = (url) => url && url.replace(/\/images\/images\//g, '/images/');
+
 // @desc    Get user chats
 // @route   GET /api/chats
 // @access  Private
@@ -14,9 +16,17 @@ const getChats = async (req, res) => {
       .populate('profileId', 'fullName profilePhoto category onlineStatus lastSeen')
       .sort({ updatedAt: -1 });
 
+    const fixedChats = chats.map(chat => {
+      const chatObj = chat.toObject();
+      if (chatObj.profileId) {
+        chatObj.profileId.profilePhoto = fixPhotoUrl(chatObj.profileId.profilePhoto);
+      }
+      return chatObj;
+    });
+
     res.json({
       success: true,
-      chats
+      chats: fixedChats
     });
   } catch (error) {
     console.error(error);
@@ -68,9 +78,14 @@ const createChat = async (req, res) => {
     const populatedChat = await Chat.findById(chat._id)
       .populate('profileId', 'fullName profilePhoto category onlineStatus lastSeen');
 
+    const chatObj = populatedChat.toObject();
+    if (chatObj.profileId) {
+      chatObj.profileId.profilePhoto = fixPhotoUrl(chatObj.profileId.profilePhoto);
+    }
+
     res.status(201).json({
       success: true,
-      chat: populatedChat
+      chat: chatObj
     });
   } catch (error) {
     console.error(error);

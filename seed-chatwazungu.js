@@ -102,10 +102,10 @@ const maleBios = [
   'Charming European man seeking chat partners'
 ];
 
-// Images are served from jsDelivr (backed by this GitHub repo) so they are
-// globally cached, reliable, and never depend on Render's ephemeral disk or
-// on-the-fly AI generation. Override with IMAGE_BASE_URL if needed.
-const IMAGE_BASE = process.env.IMAGE_BASE_URL || 'https://cdn.jsdelivr.net/gh/obatheboy/chatwazungu@main/public/cache/images';
+// Images are served same-origin from the backend (committed HD portraits in
+// public/cache/images, served instantly by the /images route). This displays
+// reliably in the browser with no external CDN dependency.
+const IMAGE_BASE = (process.env.IMAGE_BASE_URL || 'https://chat-wazungu-e1ix.onrender.com').replace(/\/images\/?$/, '');
 const femalePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/woman_${i + 1}.jpg`);
 const malePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/man_${i + 1}.jpg`);
 

@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const UnlockedProfile = require('../models/UnlockedProfile');
 
+const fixPhotoUrl = (url) => url && url.replace(/\/images\/images\//g, '/images/');
+
 const getProfiles = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -33,7 +35,8 @@ const getProfiles = async (req, res) => {
 
     const profilesWithStatus = profiles.map(profile => {
       const profileObj = profile.toObject();
-      profileObj.isUnlocked = unlockedIds.includes(profile._id.toString());
+      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
+      profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
     });
 
@@ -82,7 +85,8 @@ const searchProfiles = async (req, res) => {
 
     const profilesWithStatus = profiles.map(profile => {
       const profileObj = profile.toObject();
-      profileObj.isUnlocked = unlockedIds.includes(profile._id.toString());
+      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
+      profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
     });
 
@@ -116,6 +120,7 @@ const getProfile = async (req, res) => {
 
     const profileData = profile.toObject();
     profileData.isUnlocked = !!unlocked;
+    profileData.profilePhoto = fixPhotoUrl(profileData.profilePhoto);
 
     if (!profileData.isUnlocked) {
       profileData.bio = 'This profile is locked. Unlock to view full details and chat.';
@@ -168,8 +173,14 @@ const getFeaturedProfiles = async (req, res) => {
 
     const profilesWithStatus = profiles.map(profile => {
       const profileObj = profile.toObject();
-      profileObj.isUnlocked = unlockedIds.includes(profile._id.toString());
+      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
+      profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
+    });
+
+    res.json({
+      success: true,
+      profiles: profilesWithStatus
     });
 
     res.json({
