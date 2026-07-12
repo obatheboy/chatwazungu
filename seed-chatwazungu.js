@@ -112,6 +112,12 @@ const alternatingPhotos = Array.from({ length: 20 }, (_, i) => [
   `${IMAGE_BASE}/images/man_${i + 1}.jpg`
 ]).flat();
 
+const shuffledIndices = Array.from({ length: 20 }, (_, i) => i).sort(() => Math.random() - 0.5);
+const shuffledPhotos = shuffledIndices.flatMap(i => [
+  `${IMAGE_BASE}/images/woman_${i + 1}.jpg`,
+  `${IMAGE_BASE}/images/man_${i + 1}.jpg`
+]);
+
 const counties = [
   'London', 'New York', 'Paris', 'Los Angeles', 'Dubai', 'Sydney',
   'Toronto', 'Berlin', 'Amsterdam', 'Milan', 'Madrid', 'Chicago',
@@ -154,7 +160,7 @@ async function seed() {
     const totalProfiles = 200;
     let createdCount = 0;
     let skippedCount = 0;
-    let alternatingPhotoIndex = 0;
+    let shuffledPhotoIndex = 0;
 
     for (const category of categories) {
       console.log(`\n📁 Seeding ${category.name} (${category.count})...`);
@@ -166,8 +172,8 @@ async function seed() {
         const baseName = names[i % names.length];
         const uniqueName = i >= names.length ? `${baseName} ${Math.floor(i / names.length) + 1}` : baseName;
         const bio = bios[i % bios.length];
-        const photo = alternatingPhotos[alternatingPhotoIndex % alternatingPhotos.length];
-        alternatingPhotoIndex++;
+        const photo = shuffledPhotos[shuffledPhotoIndex % shuffledPhotos.length];
+        shuffledPhotoIndex++;
         const county = getRandomCounty();
         
         const age = category.gender === 'female'
@@ -213,7 +219,7 @@ async function seed() {
     console.log(`   Created: ${createdCount} profiles`);
     console.log(`   Skipped: ${skippedCount} duplicates`);
     console.log(`   Total in DB: ${createdCount + skippedCount}`);
-    console.log(`   Alternating photos used: ${alternatingPhotoIndex}`);
+    console.log(`   Shuffled photos used: ${shuffledPhotoIndex}`);
     console.log(`   Photo source: backend /images route (diverse portraits with varied clothing, backgrounds, and styles)`);
     
     await mongoose.disconnect();
