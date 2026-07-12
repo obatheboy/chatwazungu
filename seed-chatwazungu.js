@@ -2,10 +2,12 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
+const Chat = require('./models/Chat');
+const UnlockedProfile = require('./models/UnlockedProfile');
 
 const categories = [
-  { name: 'white-female', gender: 'female', count: 160 },
-  { name: 'white-male', gender: 'male', count: 40 }
+  { name: 'white-female', gender: 'female', count: 20 },
+  { name: 'white-male', gender: 'male', count: 20 }
 ];
 
 const femaleNames = [
@@ -101,8 +103,8 @@ const maleBios = [
 ];
 
 const IMAGE_BASE = process.env.IMAGE_BASE_URL || 'https://chat-wazungu-e1ix.onrender.com';
-const femalePhotos = Array.from({ length: 60 }, (_, i) => `${IMAGE_BASE}/images/woman_${i + 1}.jpg`);
-const malePhotos = Array.from({ length: 40 }, (_, i) => `${IMAGE_BASE}/images/man_${i + 1}.jpg`);
+const femalePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/woman_${i + 1}.jpg`);
+const malePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/man_${i + 1}.jpg`);
 
 const counties = [
   'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita Taveta',
@@ -133,6 +135,16 @@ async function seed() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ Connected to MongoDB');
+
+    // Wipe any existing dummy profiles (and their chats/unlocks) so a reseed
+    // always yields a clean 20 female + 20 male set.
+    const dummyIds = (await User.find({ isDummy: true }).select('_id')).map(u => u._id);
+    if (dummyIds.length) {
+      await UnlockedProfile.deleteMany({ $or: [{ userId: { $in: dummyIds } }, { unlockedUserId: { $in: dummyIds } }] });
+      await Chat.deleteMany({ $or: [{ userId: { $in: dummyIds } }, { profileId: { $in: dummyIds } }] });
+      await User.deleteMany({ _id: { $in: dummyIds } });
+      console.log(`🧹 Cleared ${dummyIds.length} existing dummy profiles`);
+    }
 
     const totalProfiles = 200;
     let createdCount = 0;
@@ -208,7 +220,7 @@ async function seed() {
     console.log(`   Total in DB: ${createdCount + skippedCount}`);
     console.log(`   Female photos used: ${Math.min(femalePhotoIndex, 100)} unique`);
     console.log(`   Male photos used: ${Math.min(malePhotoIndex, 100)} unique`);
-    console.log(`   Photo source: backend /images route (HD 800x1000 white caucasian, gender-matched, generated + cached)`);
+    console.log(`   Photo source: backend /images route (HD 1280x1600 white caucasian, gender-matched, generated + cached)`);
     
     await mongoose.disconnect();
     console.log('👋 Disconnected from MongoDB');

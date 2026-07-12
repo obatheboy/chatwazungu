@@ -14,12 +14,12 @@ function hit(url) {
 
 (async () => {
   const base = 'https://chat-wazungu-e1ix.onrender.com/images';
-  for (let i = 1; i <= 60; i++) {
+  for (let i = 1; i <= 20; i++) {
     const s = await hit(`${base}/woman_${i}.jpg`);
     console.log(`woman_${i}: ${s}`);
     await sleep(300);
   }
-  for (let i = 1; i <= 40; i++) {
+  for (let i = 1; i <= 20; i++) {
     const s = await hit(`${base}/man_${i}.jpg`);
     console.log(`man_${i}: ${s}`);
     await sleep(300);
