@@ -147,8 +147,6 @@ async function seed() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ Connected to MongoDB');
 
-    // Wipe any existing dummy profiles (and their chats/unlocks) so a reseed
-    // always yields a clean 20 female + 20 male set.
     const dummyIds = (await User.find({ isDummy: true }).select('_id')).map(u => u._id);
     if (dummyIds.length) {
       await UnlockedProfile.deleteMany({ $or: [{ userId: { $in: dummyIds } }, { unlockedUserId: { $in: dummyIds } }] });
@@ -157,70 +155,74 @@ async function seed() {
       console.log(`🧹 Cleared ${dummyIds.length} existing dummy profiles`);
     }
 
-    const totalProfiles = 200;
-    let createdCount = 0;
-    let skippedCount = 0;
-    let shuffledPhotoIndex = 0;
+    const shuffledPhotoIndex = 0;
+    const usedNames = new Set();
+    const totalProfiles = 40;
 
-    for (const category of categories) {
-      console.log(`\n📁 Seeding ${category.name} (${category.count})...`);
+    console.log(`\n📁 Seeding ${totalProfiles} alternating profiles (woman/man/woman/man...)...`);
 
-      const names = category.gender === 'female' ? femaleNames : maleNames;
-      const bios = category.gender === 'female' ? femaleBios : maleBios;
+    for (let i = 0; i < totalProfiles; i++) {
+      const photo = shuffledPhotos[i % shuffledPhotos.length];
+      const isWoman = photo.includes('/images/woman_');
+      const gender = isWoman ? 'female' : 'male';
+      const category = isWoman ? 'white-female' : 'white-male';
+      const names = isWoman ? femaleNames : maleNames;
+      const bios = isWoman ? femaleBios : maleBios;
 
-      for (let i = 0; i < category.count; i++) {
-        const baseName = names[i % names.length];
-        const uniqueName = i >= names.length ? `${baseName} ${Math.floor(i / names.length) + 1}` : baseName;
-        const bio = bios[i % bios.length];
-        const photo = shuffledPhotos[shuffledPhotoIndex % shuffledPhotos.length];
-        shuffledPhotoIndex++;
-        const county = getRandomCounty();
-        
-        const age = category.gender === 'female'
-          ? Math.floor(Math.random() * 12) + 20
-          : Math.floor(Math.random() * 14) + 22;
+      let uniqueName = names[i % names.length];
+      let nameSuffix = Math.floor(i / names.length) + 1;
+      if (nameSuffix > 1) uniqueName = `${uniqueName} ${nameSuffix}`;
 
-        const dateOfBirth = new Date();
-        dateOfBirth.setFullYear(dateOfBirth.getFullYear() - age);
-        dateOfBirth.setHours(0, 0, 0, 0);
-
-        const existing = await User.findOne({ fullName: uniqueName, isDummy: true, category: category.name });
-        if (existing) {
-          skippedCount++;
-          continue;
-        }
-
-        const hashedPassword = await bcrypt.hash('dummy123', 10);
-
-        await User.create({
-          fullName: uniqueName,
-          phoneNumber: `dummy${Date.now()}${i}@chatwazungu.com`,
-          password: hashedPassword,
-          dateOfBirth,
-          gender: category.gender,
-          county,
-          bio,
-          profilePhoto: photo,
-          category: category.name,
-          lookingFor: '',
-          isDummy: true,
-          isVerified: true,
-          isActive: true,
-          onlineStatus: getRandomOnlineStatus(),
-          tags: getRandomTags()
-        });
-
-        createdCount++;
-        process.stdout.write(`\r${category.name}: ${createdCount}/${category.count} profiles created...`);
+      while (usedNames.has(uniqueName)) {
+        uniqueName = `${names[i % names.length]} ${nameSuffix++}`;
       }
+      usedNames.add(uniqueName);
+
+      const bio = bios[i % bios.length];
+      const county = getRandomCounty();
+
+      const age = isWoman
+        ? Math.floor(Math.random() * 12) + 20
+        : Math.floor(Math.random() * 14) + 22;
+
+      const dateOfBirth = new Date();
+      dateOfBirth.setFullYear(dateOfBirth.getFullYear() - age);
+      dateOfBirth.setHours(0, 0, 0, 0);
+
+      const existing = await User.findOne({ fullName: uniqueName, isDummy: true, category });
+      if (existing) {
+        console.log(`\n⚠️  Skipping duplicate: ${uniqueName}`);
+        continue;
+      }
+
+      const hashedPassword = await bcrypt.hash('dummy123', 10);
+
+      await User.create({
+        fullName: uniqueName,
+        phoneNumber: `dummy${Date.now()}${i}@chatwazungu.com`,
+        password: hashedPassword,
+        dateOfBirth,
+        gender,
+        county,
+        bio,
+        profilePhoto: photo,
+        category,
+        lookingFor: '',
+        isDummy: true,
+        isVerified: true,
+        isActive: true,
+        onlineStatus: getRandomOnlineStatus(),
+        tags: getRandomTags()
+      });
+
+      process.stdout.write(`\r${category}: ${i + 1}/${totalProfiles} profiles created...`);
     }
 
     console.log(`\n\n✅ Seeding complete!`);
-    console.log(`   Created: ${createdCount} profiles`);
-    console.log(`   Skipped: ${skippedCount} duplicates`);
-    console.log(`   Total in DB: ${createdCount + skippedCount}`);
-    console.log(`   Shuffled photos used: ${shuffledPhotoIndex}`);
-    console.log(`   Photo source: backend /images route (diverse portraits with varied clothing, backgrounds, and styles)`);
+    console.log(`   Created: ${totalProfiles} alternating profiles`);
+    console.log(`   Gender alternates: woman/man/woman/man...`);
+    console.log(`   Names and bios match photo gender`);
+    console.log(`   Photo source: backend /images route`);
     
     await mongoose.disconnect();
     console.log('👋 Disconnected from MongoDB');
