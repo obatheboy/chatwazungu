@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 
 const WOMAN_PROMPT = 'professional studio headshot of a beautiful young white caucasian woman, friendly smile, soft natural lighting, plain light background, photorealistic, high quality, sharp focus';
 const MAN_PROMPT = 'professional studio headshot of a handsome young white caucasian man, confident smile, soft natural lighting, plain light background, photorealistic, high quality, sharp focus';
@@ -18,6 +19,25 @@ async function fetchPollinations(prompt, seed) {
   return buf;
 }
 
+async function getProcessedImage(file) {
+  const processedPath = path.join(IMAGES_DIR, file.replace('.jpg', '_hd.jpg'));
+  if (fs.existsSync(processedPath) && fs.statSync(processedPath).size > HD_MIN_BYTES) {
+    return processedPath;
+  }
+
+  const sourcePath = path.join(IMAGES_DIR, file);
+  if (!fs.existsSync(sourcePath) || fs.statSync(sourcePath).size <= HD_MIN_BYTES) {
+    return null;
+  }
+
+  await sharp(sourcePath)
+    .resize(800, 1000, { fit: 'cover', position: 'top' })
+    .jpeg({ quality: 90, mozjpeg: true })
+    .toFile(processedPath);
+
+  return processedPath;
+}
+
 const generateImage = async (req, res) => {
   try {
     const file = req.params.file;
@@ -28,21 +48,23 @@ const generateImage = async (req, res) => {
     const index = parseInt(m[2], 10);
     const localPath = path.join(IMAGES_DIR, file);
 
-    // Serve the pre-generated HD image instantly (committed to the repo).
-    if (fs.existsSync(localPath) && fs.statSync(localPath).size > HD_MIN_BYTES) {
-      res.setHeader('Cache-Control', 'public, max-age=2592000');
-      return res.sendFile(localPath);
+    if (!fs.existsSync(localPath) || fs.statSync(localPath).size <= HD_MIN_BYTES) {
+      try {
+        const buf = await fetchPollinations(gender === 'man' ? MAN_PROMPT : WOMAN_PROMPT, index);
+        fs.writeFileSync(localPath, buf);
+      } catch (e) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
     }
 
-    // Generate on demand only if the file is somehow missing (rare).
-    try {
-      const buf = await fetchPollinations(gender === 'man' ? MAN_PROMPT : WOMAN_PROMPT, index);
-      fs.writeFileSync(localPath, buf);
+    const processedPath = await getProcessedImage(file);
+    if (processedPath) {
       res.setHeader('Cache-Control', 'public, max-age=2592000');
-      return res.sendFile(localPath);
-    } catch (e) {
-      return res.status(404).json({ message: 'Image not found' });
+      return res.sendFile(processedPath);
     }
+
+    res.setHeader('Cache-Control', 'public, max-age=2592000');
+    return res.sendFile(localPath);
   } catch (error) {
     console.error('generateImage error:', error);
     res.status(500).json({ message: 'Server error' });
