@@ -7,7 +7,9 @@ const {
   getPaymentStatus,
   getPaymentHistory,
   getWallet,
-  requestWithdrawal
+  requestWithdrawal,
+  initiateMegaPayPayment,
+  checkMegaPayStatus
 } = require('../controllers/paymentController');
 const { protect } = require('../middleware/auth');
 
@@ -18,5 +20,7 @@ router.get('/status/:id', protect, getPaymentStatus);
 router.get('/history', protect, getPaymentHistory);
 router.get('/wallet', protect, getWallet);
 router.post('/withdraw', protect, requestWithdrawal);
+router.post('/megapay/initiate', protect, initiateMegaPayPayment);
+router.post('/megapay/status', protect, checkMegaPayStatus);
 
 module.exports = router;

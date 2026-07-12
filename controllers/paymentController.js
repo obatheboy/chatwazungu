@@ -1,7 +1,9 @@
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const UnlockedProfile = require('../models/UnlockedProfile');
+const Chat = require('../models/Chat');
 const crypto = require('crypto');
+const MegaPayService = require('../services/megapayService');
 
 const fixPhotoUrl = (url) => {
   if (!url) return url;
@@ -12,6 +14,164 @@ const fixPhotoUrl = (url) => {
   }
   return url;
 };
+
+const megapay = new MegaPayService();
+
+const initiateMegaPayPayment = async (req, res) => {
+  try {
+    const { profileId, phoneNumber } = req.body;
+    const userId = req.user.id;
+
+    if (!profileId || !phoneNumber) {
+      return res.status(400).json({ message: 'Profile ID and phone number are required' });
+    }
+
+    const profile = await User.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    const existingPayment = await Payment.findOne({
+      userId,
+      profileId,
+      status: 'completed'
+    });
+    if (existingPayment) {
+      return res.status(400).json({ message: 'Profile already unlocked' });
+    }
+
+    let cleanPhone = phoneNumber.replace(/\s/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '254' + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith('254')) {
+      cleanPhone = '254' + cleanPhone;
+    }
+
+    const reference = `CHAT_${userId}_${profileId}_${Date.now()}`;
+    const paymentResponse = await megapay.initiatePayment(cleanPhone, 99, reference);
+
+    const payment = await Payment.create({
+      userId,
+      profileId,
+      amount: 99,
+      currency: 'KES',
+      paymentMethod: 'megapay',
+      transactionRequestId: paymentResponse.transactionRequestId,
+      reference,
+      status: 'pending',
+      metadata: { phone: cleanPhone }
+    });
+
+    pollMegaPayStatus(payment._id.toString(), paymentResponse.transactionRequestId);
+
+    res.status(201).json({
+      success: true,
+      message: 'M-Pesa STK Push sent successfully',
+      transactionRequestId: paymentResponse.transactionRequestId
+    });
+  } catch (error) {
+    console.error('MegaPay initiation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Payment initiation failed',
+      error: error.message
+    });
+  }
+};
+
+const checkMegaPayStatus = async (req, res) => {
+  try {
+    const { transactionRequestId } = req.body;
+
+    if (!transactionRequestId) {
+      return res.status(400).json({ message: 'Transaction Request ID is required' });
+    }
+
+    const status = await megapay.checkPaymentStatus(transactionRequestId);
+
+    res.json({
+      success: true,
+      status: status.status,
+      resultCode: status.resultCode,
+      amount: status.amount
+    });
+  } catch (error) {
+    console.error('MegaPay status check error:', error);
+    res.status(500).json({ message: 'Status check failed' });
+  }
+};
+
+async function pollMegaPayStatus(paymentId, transactionRequestId) {
+  const timeout = 120000;
+  const startTime = Date.now();
+  let completed = false;
+
+  while (Date.now() - startTime < timeout && !completed) {
+    try {
+      const status = await megapay.checkPaymentStatus(transactionRequestId);
+
+      if (status.status === 'Completed') {
+        completed = true;
+        await handleSuccessfulPayment(paymentId);
+        break;
+      }
+
+      if (status.status === 'Failed') {
+        completed = true;
+        await Payment.findByIdAndUpdate(paymentId, { status: 'failed' });
+        break;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    } catch (error) {
+      console.error('MegaPay polling error:', error);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+  }
+
+  if (!completed) {
+    await Payment.findByIdAndUpdate(paymentId, { status: 'timeout' });
+  }
+}
+
+async function handleSuccessfulPayment(paymentId) {
+  try {
+    const payment = await Payment.findById(paymentId);
+    if (!payment || payment.status === 'completed') return;
+
+    payment.status = 'completed';
+    payment.completedAt = new Date();
+    await payment.save();
+
+    await unlockProfileForUser(payment.userId.toString(), payment.profileId.toString());
+
+    const chat = await Chat.create({
+      userId: payment.userId,
+      profileId: payment.profileId,
+      messages: []
+    });
+
+    const profile = await User.findById(payment.profileId);
+    if (profile) {
+      const welcomeMessage = `Hey there! I'm ${profile.fullName} 😏 I've been waiting for you to message me! What's up?`;
+
+      await Chat.findByIdAndUpdate(chat._id, {
+        $push: {
+          messages: {
+            sender: 'ai',
+            content: welcomeMessage,
+            timestamp: new Date(),
+            isRead: false
+          }
+        }
+      });
+    }
+
+    console.log(`✅ MegaPay payment ${paymentId} completed. Chat ${chat._id} activated.`);
+  } catch (error) {
+    console.error('Error handling successful payment:', error);
+  }
+}
 
 const initiateMpesa = async (req, res) => {
   try {
@@ -194,22 +354,30 @@ const requestWithdrawal = async (req, res) => {
     const userId = req.user.id;
     const { amount, mpesaNumber } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Invalid withdrawal amount' });
-    }
+  if ((user.totalUnlocks || 0) < 6) {
+    return res.status(403).json({
+      message: `Unlock 6 profiles to withdraw to M-Pesa. You have unlocked ${user.totalUnlocks || 0} profiles.`,
+      unlocksRequired: 6,
+      currentUnlocks: user.totalUnlocks || 0
+    });
+  }
 
-    if (amount > user.walletBalance) {
-      return res.status(400).json({ message: 'Insufficient wallet balance' });
-    }
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ message: 'Invalid withdrawal amount' });
+  }
 
-    if (!mpesaNumber && !user.mpesaNumber) {
-      return res.status(400).json({ message: 'M-Pesa number is required' });
-    }
+  if (amount > user.walletBalance) {
+    return res.status(400).json({ message: 'Insufficient wallet balance' });
+  }
+
+  if (!mpesaNumber && !user.mpesaNumber) {
+    return res.status(400).json({ message: 'M-Pesa number is required' });
+  }
 
     const withdrawalId = `WDR-${Date.now()}-${userId.toString().slice(-6)}`;
 
@@ -246,6 +414,7 @@ async function unlockProfileForUser(userId, profileId) {
     user.totalUnlocks = (user.totalUnlocks || 0) + 1;
     user.totalEarnings = (user.totalEarnings || 0) + 500;
     user.walletBalance = (user.walletBalance || 0) + 500;
+    user.canWithdraw = user.totalUnlocks >= 6;
     await user.save();
   }
   return user;
@@ -361,5 +530,7 @@ module.exports = {
   getPaymentStatus,
   getPaymentHistory,
   getWallet,
-  requestWithdrawal
+  requestWithdrawal,
+  initiateMegaPayPayment,
+  checkMegaPayStatus
 };
