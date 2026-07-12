@@ -87,6 +87,29 @@ const checkMegaPayStatus = async (req, res) => {
       return res.status(400).json({ message: 'Transaction Request ID is required' });
     }
 
+    const payment = await Payment.findOne({ transactionRequestId });
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    if (payment.status === 'completed') {
+      return res.json({
+        success: true,
+        status: 'Completed',
+        resultCode: '200',
+        amount: payment.amount
+      });
+    }
+
+    if (payment.status === 'failed') {
+      return res.json({
+        success: true,
+        status: 'Failed',
+        resultCode: '400',
+        amount: payment.amount
+      });
+    }
+
     const status = await megapay.checkPaymentStatus(transactionRequestId);
 
     res.json({
