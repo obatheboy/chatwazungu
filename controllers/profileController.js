@@ -135,14 +135,12 @@ const getProfile = async (req, res) => {
 
 const getCounties = async (req, res) => {
   const counties = [
-    'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita Taveta',
-    'Garissa', 'Wajir', 'Mandera', 'Marsabit', 'Isiolo', 'Meru', 'Tharaka-Nithi',
-    'Embu', 'Kitui', 'Machakos', 'Makueni', 'Nyandarua', 'Nyeri', 'Kirinyaga',
-    'Murang\'a', 'Kiambu', 'Turkana', 'West Pokot', 'Samburu', 'Trans-Nzoia',
-    'Uasin Gishu', 'Elgeyo-Marakwet', 'Nandi', 'Baringo', 'Laikipia', 'Nakuru',
-    'Narok', 'Kajiado', 'Kericho', 'Bomet', 'Kakamega', 'Vihiga', 'Bungoma',
-    'Busia', 'Siaya', 'Kisumu', 'Homa Bay', 'Migori', 'Kisii', 'Nyamira',
-    'Nairobi'
+    'London', 'New York', 'Paris', 'Los Angeles', 'Dubai', 'Sydney',
+    'Toronto', 'Berlin', 'Amsterdam', 'Milan', 'Madrid', 'Chicago',
+    'Singapore', 'Hong Kong', 'Tokyo', 'Zurich', 'Geneva', 'Rome',
+    'Barcelona', 'Vienna', 'Munich', 'Stockholm', 'Dublin', 'Brussels',
+    'Copenhagen', 'Oslo', 'Hamburg', 'Frankfurt', 'Miami', 'Boston',
+    'San Francisco', 'Seattle', 'Washington', 'Manchester', 'Lyon', 'Nice'
   ];
 
   res.json({

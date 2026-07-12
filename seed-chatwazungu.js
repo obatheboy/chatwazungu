@@ -107,13 +107,12 @@ const femalePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/
 const malePhotos = Array.from({ length: 20 }, (_, i) => `${IMAGE_BASE}/images/man_${i + 1}.jpg`);
 
 const counties = [
-  'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita Taveta',
-  'Garissa', 'Wajir', 'Mandera', 'Marsabit', 'Isiolo', 'Meru', 'Tharaka-Nithi',
-  'Embu', 'Kitui', 'Machakos', 'Makueni', 'Nyandarua', 'Nyeri', 'Kirinyaga',
-  'Murang\'a', 'Kiambu', 'Turkana', 'West Pokot', 'Samburu', 'Trans-Nzoia',
-  'Uasin Gishu', 'Elgeyo-Marakwet', 'Nandi', 'Baringo', 'Laikipia', 'Nakuru',
-  'Narok', 'Kajiado', 'Kericho', 'Bomet', 'Kakamega', 'Vihiga', 'Bungoma',
-  'Busia', 'Siaya', 'Kisumu', 'Homa Bay', 'Migori', 'Kisii', 'Nyamira', 'Nairobi'
+  'London', 'New York', 'Paris', 'Los Angeles', 'Dubai', 'Sydney',
+  'Toronto', 'Berlin', 'Amsterdam', 'Milan', 'Madrid', 'Chicago',
+  'Singapore', 'Hong Kong', 'Tokyo', 'Zurich', 'Geneva', 'Rome',
+  'Barcelona', 'Vienna', 'Munich', 'Stockholm', 'Dublin', 'Brussels',
+  'Copenhagen', 'Oslo', 'Hamburg', 'Frankfurt', 'Miami', 'Boston',
+  'San Francisco', 'Seattle', 'Washington', 'Manchester', 'Lyon', 'Nice'
 ];
 
 function getRandomCounty() {
@@ -220,7 +219,7 @@ async function seed() {
     console.log(`   Total in DB: ${createdCount + skippedCount}`);
     console.log(`   Female photos used: ${Math.min(femalePhotoIndex, 100)} unique`);
     console.log(`   Male photos used: ${Math.min(malePhotoIndex, 100)} unique`);
-    console.log(`   Photo source: backend /images route (HD 1280x1600 white caucasian, gender-matched, generated + cached)`);
+    console.log(`   Photo source: backend /images route (HD white caucasian, gender-matched; instant HD fallback + background AI upgrade)`);
     
     await mongoose.disconnect();
     console.log('👋 Disconnected from MongoDB');
