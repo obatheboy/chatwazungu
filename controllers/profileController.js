@@ -51,6 +51,15 @@ const getProfiles = async (req, res) => {
       return profileObj;
     });
 
+    const males = profilesWithStatus.filter(p => p.gender === 'male');
+    const females = profilesWithStatus.filter(p => p.gender !== 'male');
+    const sorted = [];
+    const max = Math.max(males.length, females.length);
+    for (let i = 0; i < max; i++) {
+      if (i < males.length) sorted.push(males[i]);
+      if (i < females.length) sorted.push(females[i]);
+    }
+
     res.json({
       success: true,
       profiles: profilesWithStatus,
@@ -104,10 +113,19 @@ const searchProfiles = async (req, res) => {
       return profileObj;
     });
 
+    const males = profilesWithStatus.filter(p => p.gender === 'male');
+    const females = profilesWithStatus.filter(p => p.gender !== 'male');
+    const sorted = [];
+    const max = Math.max(males.length, females.length);
+    for (let i = 0; i < max; i++) {
+      if (i < males.length) sorted.push(males[i]);
+      if (i < females.length) sorted.push(females[i]);
+    }
+
     res.json({
       success: true,
-      profiles: profilesWithStatus,
-      count: profilesWithStatus.length
+      profiles: sorted,
+      count: sorted.length
     });
   } catch (error) {
     console.error(error);
@@ -195,9 +213,18 @@ const getFeaturedProfiles = async (req, res) => {
       return profileObj;
     });
 
+    const males = profilesWithStatus.filter(p => p.gender === 'male');
+    const females = profilesWithStatus.filter(p => p.gender !== 'male');
+    const sorted = [];
+    const max = Math.max(males.length, females.length);
+    for (let i = 0; i < max; i++) {
+      if (i < males.length) sorted.push(males[i]);
+      if (i < females.length) sorted.push(females[i]);
+    }
+
     res.json({
       success: true,
-      profiles: profilesWithStatus
+      profiles: sorted
     });
   } catch (error) {
     console.error(error);
