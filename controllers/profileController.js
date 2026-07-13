@@ -13,7 +13,7 @@ const fixPhotoUrl = (url) => {
 
 const getProfiles = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).lean();
+    const user = await User.findById(req.user.id);
     
     let query = {
       isDummy: true,
@@ -33,37 +33,25 @@ const getProfiles = async (req, res) => {
     const profiles = await User.find(query)
       .select('-password')
       .sort({ createdAt: -1 })
-      .limit(60)
-      .lean();
+      .limit(60);
 
-    const profileIds = profiles.map(p => p._id);
-    const unlockedDocs = await UnlockedProfile.find({
+    const unlockedProfileIds = await UnlockedProfile.find({
       userId: user._id,
-      unlockedUserId: { $in: profileIds },
       isActive: true
     }).select('unlockedUserId');
-    const unlockedIds = new Set(unlockedDocs.map(u => u.unlockedUserId.toString()));
+    const unlockedIds = unlockedProfileIds.map(u => u.unlockedUserId.toString());
 
     const profilesWithStatus = profiles.map(profile => {
-      const profileObj = { ...profile };
-      profileObj.isUnlocked = unlockedIds.has(profileObj._id.toString());
+      const profileObj = profile.toObject();
+      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
     });
 
-    const males = profilesWithStatus.filter(p => p.gender === 'male');
-    const females = profilesWithStatus.filter(p => p.gender !== 'male');
-    const sorted = [];
-    const max = Math.max(males.length, females.length);
-    for (let i = 0; i < max; i++) {
-      if (i < males.length) sorted.push(males[i]);
-      if (i < females.length) sorted.push(females[i]);
-    }
-
     res.json({
       success: true,
-      profiles: sorted,
-      count: sorted.length
+      profiles: profilesWithStatus,
+      count: profilesWithStatus.length
     });
   } catch (error) {
     console.error(error);
@@ -73,7 +61,7 @@ const getProfiles = async (req, res) => {
 
 const searchProfiles = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).lean();
+    const user = await User.findById(req.user.id);
     const { q, category } = req.query;
 
     let query = {
@@ -95,37 +83,25 @@ const searchProfiles = async (req, res) => {
 
     const profiles = await User.find(query)
       .select('-password')
-      .limit(30)
-      .lean();
+      .limit(30);
 
-    const profileIds = profiles.map(p => p._id);
-    const unlockedDocs = await UnlockedProfile.find({
+    const unlockedProfileIds = await UnlockedProfile.find({
       userId: user._id,
-      unlockedUserId: { $in: profileIds },
       isActive: true
     }).select('unlockedUserId');
-    const unlockedIds = new Set(unlockedDocs.map(u => u.unlockedUserId.toString()));
+    const unlockedIds = unlockedProfileIds.map(u => u.unlockedUserId.toString());
 
     const profilesWithStatus = profiles.map(profile => {
-      const profileObj = { ...profile };
-      profileObj.isUnlocked = unlockedIds.has(profileObj._id.toString());
+      const profileObj = profile.toObject();
+      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
     });
 
-    const males = profilesWithStatus.filter(p => p.gender === 'male');
-    const females = profilesWithStatus.filter(p => p.gender !== 'male');
-    const sorted = [];
-    const max = Math.max(males.length, females.length);
-    for (let i = 0; i < max; i++) {
-      if (i < males.length) sorted.push(males[i]);
-      if (i < females.length) sorted.push(females[i]);
-    }
-
     res.json({
       success: true,
-      profiles: sorted,
-      count: sorted.length
+      profiles: profilesWithStatus,
+      count: profilesWithStatus.length
     });
   } catch (error) {
     console.error(error);
@@ -138,7 +114,7 @@ const getProfile = async (req, res) => {
     const profileId = req.params.id;
     const userId = req.user.id;
 
-    const profile = await User.findById(profileId).select('-password').lean();
+    const profile = await User.findById(profileId).select('-password');
     
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
@@ -150,7 +126,7 @@ const getProfile = async (req, res) => {
       isActive: true
     });
 
-    const profileData = { ...profile };
+    const profileData = profile.toObject();
     profileData.isUnlocked = !!unlocked;
     profileData.profilePhoto = fixPhotoUrl(profileData.profilePhoto);
 
@@ -195,36 +171,24 @@ const getFeaturedProfiles = async (req, res) => {
     })
       .select('-password')
       .sort({ createdAt: -1 })
-      .limit(12)
-      .lean();
+      .limit(12);
 
-    const profileIds = profiles.map(p => p._id);
-    const unlockedDocs = await UnlockedProfile.find({
+    const unlockedProfileIds = await UnlockedProfile.find({
       userId: req.user.id,
-      unlockedUserId: { $in: profileIds },
       isActive: true
     }).select('unlockedUserId');
-    const unlockedIds = new Set(unlockedDocs.map(u => u.unlockedUserId.toString()));
+    const unlockedIds = unlockedProfileIds.map(u => u.unlockedUserId.toString());
 
     const profilesWithStatus = profiles.map(profile => {
-      const profileObj = { ...profile };
-      profileObj.isUnlocked = unlockedIds.has(profileObj._id.toString());
+      const profileObj = profile.toObject();
+      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
     });
 
-    const males = profilesWithStatus.filter(p => p.gender === 'male');
-    const females = profilesWithStatus.filter(p => p.gender !== 'male');
-    const sorted = [];
-    const max = Math.max(males.length, females.length);
-    for (let i = 0; i < max; i++) {
-      if (i < males.length) sorted.push(males[i]);
-      if (i < females.length) sorted.push(females[i]);
-    }
-
     res.json({
       success: true,
-      profiles: sorted
+      profiles: profilesWithStatus
     });
   } catch (error) {
     console.error(error);
