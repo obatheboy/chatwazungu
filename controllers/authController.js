@@ -30,7 +30,8 @@ const register = async (req, res) => {
       lookingFor: '',
       isDummy: false,
       isVerified: false,
-      isActive: true
+      isActive: true,
+      isActivated: false
     });
 
     if (user) {
@@ -45,7 +46,8 @@ const register = async (req, res) => {
           totalUnlocks: user.totalUnlocks,
           totalEarnings: user.totalEarnings,
           canWithdraw: user.canWithdraw,
-          category: user.category
+          category: user.category,
+          isActivated: user.isActivated
         },
         token: generateToken(user._id)
       });
@@ -86,7 +88,8 @@ const login = async (req, res) => {
         totalEarnings: user.totalEarnings,
         canWithdraw: user.canWithdraw,
         category: user.category,
-        profilePhoto: user.profilePhoto
+        profilePhoto: user.profilePhoto,
+        isActivated: user.isActivated
       },
       token: generateToken(user._id)
     });

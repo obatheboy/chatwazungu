@@ -103,6 +103,10 @@ const UserSchema = new mongoose.Schema({
   mpesaNumber: {
     type: String,
     default: ''
+  },
+  isActivated: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

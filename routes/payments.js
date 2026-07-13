@@ -11,6 +11,10 @@ const {
   initiateMegaPayPayment,
   checkMegaPayStatus
 } = require('../controllers/paymentController');
+const {
+  initiateActivationPayment,
+  checkActivationStatus
+} = require('../controllers/activationController');
 const { protect } = require('../middleware/auth');
 
 router.post('/mpesa/initiate', protect, initiateMpesa);
@@ -22,5 +26,7 @@ router.get('/wallet', protect, getWallet);
 router.post('/withdraw', protect, requestWithdrawal);
 router.post('/megapay/initiate', protect, initiateMegaPayPayment);
 router.post('/megapay/status', protect, checkMegaPayStatus);
+router.post('/activation/initiate', protect, initiateActivationPayment);
+router.post('/activation/status', protect, checkActivationStatus);
 
 module.exports = router;
