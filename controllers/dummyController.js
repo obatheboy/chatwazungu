@@ -69,72 +69,52 @@ const generateDummyProfiles = async (req, res) => {
     let femalePhotoIndex = 0;
     let malePhotoIndex = 0;
 
-    const profilesToCreate = [];
-
     for (const [category, templates] of Object.entries(dummyProfiles)) {
-      const gender = category.includes('Boy') || category.includes('Man') ? 'male' : 'female';
       for (let i = 0; i < countPerCategory; i++) {
-        profilesToCreate.push({
+        const template = templates[i % templates.length];
+        const name = template.names[i % template.names.length];
+        const age = template.ages[i % template.ages.length];
+        const bio = template.bios[i % template.bios.length];
+        const county = counties[Math.floor(Math.random() * counties.length)];
+        const gender = category.includes('Boy') || category.includes('Man') ? 'male' : 'female';
+        
+        let photo;
+        if (gender === 'female') {
+          photo = femalePhotos[femalePhotoIndex % femalePhotos.length];
+          femalePhotoIndex++;
+        } else {
+          photo = malePhotos[malePhotoIndex % malePhotos.length];
+          malePhotoIndex++;
+        }
+
+        const dateOfBirth = new Date();
+        dateOfBirth.setFullYear(dateOfBirth.getFullYear() - age);
+
+        const existing = await User.findOne({ fullName: name, isDummy: true });
+        if (existing) continue;
+
+        const hashedPassword = await bcrypt.hash('dummy123', 10);
+
+        await User.create({
+          fullName: name,
+          phoneNumber: `dummy${Date.now()}${i}@chatwazungu.com`,
+          password: hashedPassword,
+          dateOfBirth,
+          gender,
+          county,
+          bio,
+          profilePhoto: photo,
           category,
-          templates,
-          index: i,
-          gender
+          lookingFor: getLookingFor(category),
+          isDummy: true,
+          isVerified: true,
+          isActive: true,
+          onlineStatus: Math.random() > 0.3 ? 'online' : 'offline',
+          tags: getRandomTags()
         });
+
+        createdCount++;
       }
-    }
-
-    const males = profilesToCreate.filter(p => p.gender === 'male');
-    const females = profilesToCreate.filter(p => p.gender === 'female');
-    const interleaved = [];
-    const max = Math.max(males.length, females.length);
-    for (let i = 0; i < max; i++) {
-      if (i < males.length) interleaved.push(males[i]);
-      if (i < females.length) interleaved.push(females[i]);
-    }
-
-    for (const { category, templates, index } of interleaved) {
-      const template = templates[index % templates.length];
-      const name = template.names[index % template.names.length];
-      const age = template.ages[index % template.ages.length];
-      const bio = template.bios[index % template.bios.length];
-      const county = counties[Math.floor(Math.random() * counties.length)];
-      
-      let photo;
-      if (category.includes('Boy') || category.includes('Man')) {
-        photo = malePhotos[malePhotoIndex % malePhotos.length];
-        malePhotoIndex++;
-      } else {
-        photo = femalePhotos[femalePhotoIndex % femalePhotos.length];
-        femalePhotoIndex++;
-      }
-
-      const dateOfBirth = new Date();
-      dateOfBirth.setFullYear(dateOfBirth.getFullYear() - age);
-
-      const existing = await User.findOne({ fullName: name, isDummy: true });
-      if (existing) continue;
-
-      const hashedPassword = await bcrypt.hash('dummy123', 10);
-
-      await User.create({
-        fullName: name,
-        phoneNumber: `dummy${Date.now()}${createdCount}@chatwazungu.com`,
-        password: hashedPassword,
-        dateOfBirth,
-        gender: category.includes('Boy') || category.includes('Man') ? 'male' : 'female',
-        county,
-        bio,
-        profilePhoto: photo,
-        category,
-        lookingFor: getLookingFor(category),
-        isDummy: true,
-        isVerified: true,
-        isActive: true,
-        onlineStatus: Math.random() > 0.3 ? 'online' : 'offline',
-        tags: getRandomTags()
-      });
-
-      createdCount++;
     }
 
     res.json({
