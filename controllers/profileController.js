@@ -33,7 +33,7 @@ const getProfiles = async (req, res) => {
     const profiles = await User.find(query)
       .select('-password')
       .sort({ createdAt: -1 })
-      .limit(20)
+      .limit(60)
       .lean();
 
     const profileIds = profiles.map(p => p._id);
@@ -86,7 +86,7 @@ const searchProfiles = async (req, res) => {
 
     const profiles = await User.find(query)
       .select('-password')
-      .limit(20)
+      .limit(30)
       .lean();
 
     const profileIds = profiles.map(p => p._id);
