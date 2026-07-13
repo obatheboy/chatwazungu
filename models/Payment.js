@@ -9,7 +9,7 @@ const PaymentSchema = new mongoose.Schema({
   profileId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   amount: {
     type: Number,
