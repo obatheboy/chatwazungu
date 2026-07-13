@@ -62,8 +62,8 @@ const getProfiles = async (req, res) => {
 
     res.json({
       success: true,
-      profiles: profilesWithStatus,
-      count: profilesWithStatus.length
+      profiles: sorted,
+      count: sorted.length
     });
   } catch (error) {
     console.error(error);
