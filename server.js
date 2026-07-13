@@ -4,6 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const http = require('http');
 const path = require('path');
+const compression = require('compression');
 const { Server } = require('socket.io');
 
 // Import routes
@@ -21,6 +22,7 @@ const app = express();
 
 // Middleware
 app.use(cors());
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -101,8 +103,19 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/dummy', dummyRoutes);
 
-// Serve cached profile images
-app.use('/cache', express.static(path.join(__dirname, 'public/cache')));
+// Cache profile API responses for 30 seconds
+app.use('/api/profiles', (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'public, max-age=30, s-maxage=30');
+  }
+  next();
+});
+
+// Serve cached profile images with long cache
+app.use('/cache', express.static(path.join(__dirname, 'public/cache'), {
+  maxAge: '7d',
+  immutable: true
+}));
 
 // Generate + cache HD profile images on demand
 app.use('/images', imageRoutes);

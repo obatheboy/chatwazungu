@@ -13,7 +13,7 @@ const fixPhotoUrl = (url) => {
 
 const getProfiles = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).lean();
     
     let query = {
       isDummy: true,
@@ -33,17 +33,20 @@ const getProfiles = async (req, res) => {
     const profiles = await User.find(query)
       .select('-password')
       .sort({ createdAt: -1 })
-      .limit(60);
+      .limit(20)
+      .lean();
 
-    const unlockedProfileIds = await UnlockedProfile.find({
+    const profileIds = profiles.map(p => p._id);
+    const unlockedDocs = await UnlockedProfile.find({
       userId: user._id,
+      unlockedUserId: { $in: profileIds },
       isActive: true
     }).select('unlockedUserId');
-    const unlockedIds = unlockedProfileIds.map(u => u.unlockedUserId.toString());
+    const unlockedIds = new Set(unlockedDocs.map(u => u.unlockedUserId.toString()));
 
     const profilesWithStatus = profiles.map(profile => {
-      const profileObj = profile.toObject();
-      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
+      const profileObj = { ...profile };
+      profileObj.isUnlocked = unlockedIds.has(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
     });
@@ -61,7 +64,7 @@ const getProfiles = async (req, res) => {
 
 const searchProfiles = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).lean();
     const { q, category } = req.query;
 
     let query = {
@@ -83,17 +86,20 @@ const searchProfiles = async (req, res) => {
 
     const profiles = await User.find(query)
       .select('-password')
-      .limit(30);
+      .limit(20)
+      .lean();
 
-    const unlockedProfileIds = await UnlockedProfile.find({
+    const profileIds = profiles.map(p => p._id);
+    const unlockedDocs = await UnlockedProfile.find({
       userId: user._id,
+      unlockedUserId: { $in: profileIds },
       isActive: true
     }).select('unlockedUserId');
-    const unlockedIds = unlockedProfileIds.map(u => u.unlockedUserId.toString());
+    const unlockedIds = new Set(unlockedDocs.map(u => u.unlockedUserId.toString()));
 
     const profilesWithStatus = profiles.map(profile => {
-      const profileObj = profile.toObject();
-      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
+      const profileObj = { ...profile };
+      profileObj.isUnlocked = unlockedIds.has(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
     });
@@ -114,7 +120,7 @@ const getProfile = async (req, res) => {
     const profileId = req.params.id;
     const userId = req.user.id;
 
-    const profile = await User.findById(profileId).select('-password');
+    const profile = await User.findById(profileId).select('-password').lean();
     
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
@@ -126,7 +132,7 @@ const getProfile = async (req, res) => {
       isActive: true
     });
 
-    const profileData = profile.toObject();
+    const profileData = { ...profile };
     profileData.isUnlocked = !!unlocked;
     profileData.profilePhoto = fixPhotoUrl(profileData.profilePhoto);
 
@@ -171,24 +177,22 @@ const getFeaturedProfiles = async (req, res) => {
     })
       .select('-password')
       .sort({ createdAt: -1 })
-      .limit(12);
+      .limit(12)
+      .lean();
 
-    const unlockedProfileIds = await UnlockedProfile.find({
+    const profileIds = profiles.map(p => p._id);
+    const unlockedDocs = await UnlockedProfile.find({
       userId: req.user.id,
+      unlockedUserId: { $in: profileIds },
       isActive: true
     }).select('unlockedUserId');
-    const unlockedIds = unlockedProfileIds.map(u => u.unlockedUserId.toString());
+    const unlockedIds = new Set(unlockedDocs.map(u => u.unlockedUserId.toString()));
 
     const profilesWithStatus = profiles.map(profile => {
-      const profileObj = profile.toObject();
-      profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
+      const profileObj = { ...profile };
+      profileObj.isUnlocked = unlockedIds.has(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
       return profileObj;
-    });
-
-    res.json({
-      success: true,
-      profiles: profilesWithStatus
     });
 
     res.json({

@@ -108,16 +108,8 @@ const UserSchema = new mongoose.Schema({
   timestamps: true
 });
 
-UserSchema.virtual('age').get(function() {
-  if (!this.dateOfBirth) return null;
-  const today = new Date();
-  const birthDate = new Date(this.dateOfBirth);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  return age;
-});
+UserSchema.index({ isDummy: 1, isActive: 1, isSuspended: 1, createdAt: -1 });
+UserSchema.index({ isDummy: 1, isActive: 1, isSuspended: 1, category: 1, createdAt: -1 });
+UserSchema.index({ isDummy: 1, isActive: 1, isSuspended: 1, onlineStatus: 1, createdAt: -1 });
 
 module.exports = mongoose.model('User', UserSchema);
