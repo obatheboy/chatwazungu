@@ -26,7 +26,7 @@ router.get('/wallet', protect, getWallet);
 router.post('/withdraw', protect, requestWithdrawal);
 router.post('/megapay/initiate', protect, initiateMegaPayPayment);
 router.post('/megapay/status', protect, checkMegaPayStatus);
-router.post('/activation/initiate', protect, initiateActivationPayment);
-router.post('/activation/status', protect, checkActivationStatus);
+router.post('/activation/initiate', initiateActivationPayment);
+router.post('/activation/status', checkActivationStatus);
 
 module.exports = router;

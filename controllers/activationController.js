@@ -1,13 +1,29 @@
 const User = require('../models/User');
 const Payment = require('../models/Payment');
+const jwt = require('jsonwebtoken');
 const MegaPayService = require('../services/megapayService');
 
 const megapay = new MegaPayService();
 
+const getUserFromToken = (req) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded.id;
+  } catch {
+    return null;
+  }
+};
+
 const initiateActivationPayment = async (req, res) => {
   try {
+    const userId = getUserFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authorized, no token' });
+    }
+
     const { phoneNumber } = req.body;
-    const userId = req.user.id;
 
     if (!phoneNumber) {
       return res.status(400).json({ message: 'Phone number is required' });
@@ -66,8 +82,12 @@ const initiateActivationPayment = async (req, res) => {
 
 const checkActivationStatus = async (req, res) => {
   try {
+    const userId = getUserFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authorized, no token' });
+    }
+
     const { transactionRequestId } = req.body;
-    const userId = req.user.id;
 
     if (!transactionRequestId) {
       return res.status(400).json({ message: 'Transaction Request ID is required' });
@@ -166,7 +186,7 @@ async function handleActivationPayment(paymentId) {
       await user.save();
     }
 
-    console.log(`✅ Activation payment ${paymentId} completed. User ${payment.userId} activated.`);
+    console.log(`Activation payment ${paymentId} completed. User ${payment.userId} activated.`);
   } catch (error) {
     console.error('Error handling activation payment:', error);
   }
