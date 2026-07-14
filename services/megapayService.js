@@ -2,7 +2,7 @@ const axios = require('axios');
 
 class MegaPayService {
   constructor() {
-    this.apiKey = 'MGPYRHI7RIdn';
+    this.apiKey = 'MGPYsOrn4Vvi';
     this.email = 'obavanteshia65@gmail.com';
     this.initiateUrl = 'https://megapay.co.ke/backend/v1/initiatestk';
     this.statusUrl = 'https://megapay.co.ke/backend/v1/transactionstatus';
