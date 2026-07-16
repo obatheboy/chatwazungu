@@ -12,7 +12,7 @@ class MegaPayService {
     try {
       const response = await axios.post(this.initiateUrl, {
         api_key: this.apiKey,
-        account_name: this.email,
+        till_number: this.email,
         amount: amount.toString(),
         msisdn: phone,
         reference: reference
@@ -58,7 +58,7 @@ class MegaPayService {
     try {
       const response = await axios.post(this.statusUrl, {
         api_key: this.apiKey,
-        account_name: this.email,
+        till_number: this.email,
         transaction_request_id: transactionRequestId
       });
 
