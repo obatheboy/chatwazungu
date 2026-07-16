@@ -71,7 +71,7 @@ class SmartPayService {
       const raw = error.response?.data || error.message || 'Payment initiation failed';
       const msg = typeof raw === 'string' ? raw : (raw.message || raw.error || raw.detail || 'Payment initiation failed');
       const err = new Error(msg);
-      err.status = error.response?.status;
+      err.status = error.response?.status || 403;
       err.raw = raw;
       throw err;
     }
