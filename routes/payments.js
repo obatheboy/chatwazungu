@@ -8,8 +8,9 @@ const {
   getPaymentHistory,
   getWallet,
   requestWithdrawal,
-  initiateMegaPayPayment,
-  checkMegaPayStatus
+  initiateSmartPayPayment,
+  checkSmartPayStatus,
+  smartPayWebhook
 } = require('../controllers/paymentController');
 const {
   initiateActivationPayment,
@@ -24,8 +25,9 @@ router.get('/status/:id', protect, getPaymentStatus);
 router.get('/history', protect, getPaymentHistory);
 router.get('/wallet', protect, getWallet);
 router.post('/withdraw', protect, requestWithdrawal);
-router.post('/megapay/initiate', protect, initiateMegaPayPayment);
-router.post('/megapay/status', protect, checkMegaPayStatus);
+router.post('/smartpay/initiate', protect, initiateSmartPayPayment);
+router.post('/smartpay/status', protect, checkSmartPayStatus);
+router.post('/smartpay/webhook', smartPayWebhook);
 router.post('/activation/initiate', initiateActivationPayment);
 router.post('/activation/status', checkActivationStatus);
 

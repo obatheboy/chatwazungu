@@ -1,9 +1,9 @@
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const jwt = require('jsonwebtoken');
-const MegaPayService = require('../services/megapayService');
+const SmartPayService = require('../services/smartpayService');
 
-const megapay = new MegaPayService();
+const smartpay = new SmartPayService();
 
 const getUserFromToken = (req) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -46,24 +46,25 @@ const initiateActivationPayment = async (req, res) => {
     }
 
     const reference = `ACTIVATE_${userId}_${Date.now()}`;
-    const paymentResponse = await megapay.initiatePayment(cleanPhone, 50, reference);
+    const paymentResponse = await smartpay.initiatePayment(cleanPhone, 50, reference, 'Account Activation');
 
-    const transactionId = paymentResponse.transactionRequestId || `MGP-ACT-${Date.now()}-${userId.toString().slice(-6)}`;
+    const transactionId = paymentResponse.checkoutRequestId || `SP-ACT-${Date.now()}-${userId.toString().slice(-6)}`;
 
     const payment = await Payment.create({
       userId,
       profileId: null,
       amount: 50,
       currency: 'KES',
-      paymentMethod: 'megapay',
+      paymentMethod: 'smartpay',
       transactionId,
-      transactionRequestId: paymentResponse.transactionRequestId,
+      checkoutRequestId: paymentResponse.checkoutRequestId,
+      merchantRequestId: paymentResponse.merchantRequestId,
       reference,
       status: 'pending',
       metadata: { phone: cleanPhone, type: 'activation' }
     });
 
-    pollActivationStatus(payment._id.toString(), paymentResponse.transactionRequestId);
+    pollActivationStatus(payment._id.toString(), paymentResponse.checkoutRequestId);
 
     res.status(201).json({
       success: true,
@@ -72,10 +73,10 @@ const initiateActivationPayment = async (req, res) => {
     });
   } catch (error) {
     console.error('Activation payment initiation error:', error);
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      message: 'Payment initiation failed',
-      error: error.message
+      message: error.message || 'Payment initiation failed',
+      raw: error.raw || null
     });
   }
 };
@@ -87,13 +88,13 @@ const checkActivationStatus = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized, no token' });
     }
 
-    const { transactionRequestId } = req.body;
+    const { checkoutRequestId } = req.body;
 
-    if (!transactionRequestId) {
-      return res.status(400).json({ message: 'Transaction Request ID is required' });
+    if (!checkoutRequestId) {
+      return res.status(400).json({ message: 'Checkout Request ID is required' });
     }
 
-    const payment = await Payment.findOne({ transactionRequestId, userId });
+    const payment = await Payment.findOne({ checkoutRequestId, userId });
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
@@ -118,9 +119,9 @@ const checkActivationStatus = async (req, res) => {
       });
     }
 
-    const status = await megapay.checkPaymentStatus(transactionRequestId);
+    const status = await smartpay.checkPaymentStatus(checkoutRequestId);
 
-    if (status.status === 'Completed') {
+    if (status.status === 'Completed' || status.resultCode === 0) {
       await handleActivationPayment(payment._id.toString());
     }
 
@@ -136,16 +137,16 @@ const checkActivationStatus = async (req, res) => {
   }
 };
 
-async function pollActivationStatus(paymentId, transactionRequestId) {
+async function pollActivationStatus(paymentId, checkoutRequestId) {
   const timeout = 120000;
   const startTime = Date.now();
   let completed = false;
 
   while (Date.now() - startTime < timeout && !completed) {
     try {
-      const status = await megapay.checkPaymentStatus(transactionRequestId);
+      const status = await smartpay.checkPaymentStatus(checkoutRequestId);
 
-      if (status.status === 'Completed') {
+      if (status.status === 'Completed' || status.resultCode === 0) {
         completed = true;
         await handleActivationPayment(paymentId);
         break;
