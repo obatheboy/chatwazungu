@@ -2,8 +2,8 @@ const axios = require('axios');
 
 class MegaPayService {
   constructor() {
-    this.apiKey = 'MGPYsOrn4Vvi';
-    this.email = 'obavanteshia65@gmail.com';
+    this.apiKey = 'MGPY3xAHcagM';
+    this.email = 'SAVOPAY';
     this.initiateUrl = 'https://api.megapay.co.ke/backend/v1/initiatestk';
     this.statusUrl = 'https://api.megapay.co.ke/backend/v1/transactionstatus';
   }
@@ -30,9 +30,12 @@ class MegaPayService {
         };
       }
 
-      const msg = data.message || data.error || 'Payment initiation failed';
+      const msg = data.message || data.error || data.errorMessage || 'Payment initiation failed';
       console.error('MegaPay initiate rejected:', data);
-      throw new Error(msg);
+      const err = new Error(msg);
+      err.status = 400;
+      err.raw = data;
+      throw err;
     } catch (error) {
       const data = error.response?.data || {};
       const isPinPrompt = data.message && data.message.toLowerCase().includes('enter your mpesa pin');
