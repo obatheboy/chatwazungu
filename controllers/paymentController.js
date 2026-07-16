@@ -75,10 +75,10 @@ const initiateSmartPayPayment = async (req, res) => {
     });
   } catch (error) {
     console.error('SmartPay initiation error:', error);
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      message: 'Payment initiation failed',
-      error: error.message
+      message: error.message || 'Payment initiation failed',
+      raw: error.raw || null
     });
   }
 };

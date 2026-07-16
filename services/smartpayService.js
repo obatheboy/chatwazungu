@@ -65,7 +65,11 @@ class SmartPayService {
       }
 
       console.error('SmartPay initiate error:', error.response?.data || error.message);
-      throw error;
+      const msg = (error.response?.data?.message || error.response?.data?.error || error.message || 'Payment initiation failed');
+      const err = new Error(msg);
+      err.status = error.response?.status;
+      err.raw = error.response?.data;
+      throw err;
     }
   }
 
