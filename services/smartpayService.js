@@ -48,9 +48,12 @@ class SmartPayService {
         };
       }
 
-      const msg = data.message || data.error || 'Payment initiation failed';
+      const msg = data.message || data.error || data.detail || 'Payment initiation failed';
       console.error('SmartPay initiate rejected:', data);
-      throw new Error(msg);
+      const err = new Error(msg);
+      err.status = 400;
+      err.raw = data;
+      throw err;
     } catch (error) {
       const data = error.response?.data || {};
       const checkoutRequestId = data.checkout_request_id;
@@ -65,10 +68,11 @@ class SmartPayService {
       }
 
       console.error('SmartPay initiate error:', error.response?.data || error.message);
-      const msg = (error.response?.data?.message || error.response?.data?.error || error.message || 'Payment initiation failed');
+      const raw = error.response?.data || error.message || 'Payment initiation failed';
+      const msg = typeof raw === 'string' ? raw : (raw.message || raw.error || raw.detail || 'Payment initiation failed');
       const err = new Error(msg);
       err.status = error.response?.status;
-      err.raw = error.response?.data;
+      err.raw = raw;
       throw err;
     }
   }
