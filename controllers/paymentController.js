@@ -4,6 +4,7 @@ const UnlockedProfile = require('../models/UnlockedProfile');
 const Chat = require('../models/Chat');
 const crypto = require('crypto');
 const MegaPayService = require('../services/megapayService');
+const { generateShortReference } = require('../services/megapayService');
 
 const fixPhotoUrl = (url) => {
   if (!url) return url;
@@ -47,8 +48,8 @@ const initiateMegaPayPayment = async (req, res) => {
       cleanPhone = '254' + cleanPhone;
     }
 
-    const reference = `CHAT_${userId}_${profileId}_${Date.now()}`;
-    const paymentResponse = await megapay.initiatePayment(cleanPhone, 99, reference);
+    const megaPayReference = generateShortReference('CHAT');
+    const paymentResponse = await megapay.initiatePayment(cleanPhone, 99, megaPayReference);
 
     const transactionId = paymentResponse.transactionRequestId || `MGP-${Date.now()}-${userId.toString().slice(-6)}`;
 
@@ -60,7 +61,7 @@ const initiateMegaPayPayment = async (req, res) => {
       paymentMethod: 'megapay',
       transactionId,
       transactionRequestId: paymentResponse.transactionRequestId,
-      reference,
+      reference: megaPayReference,
       status: 'pending',
       metadata: { phone: cleanPhone }
     });

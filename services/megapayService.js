@@ -1,9 +1,16 @@
 const axios = require('axios');
 
+const generateShortReference = (prefix = 'REF') => {
+  const timestamp = Date.now().toString(36).slice(-6);
+  const random = Math.random().toString(36).slice(-4);
+  return `${prefix}_${timestamp}${random}`.slice(0, 20);
+};
+
 class MegaPayService {
   constructor() {
-    this.apiKey = 'MGPY3xAHcagM';
+    this.apiKey = 'MGPYiEkLNh2R';
     this.email = 'obavanteshia65@gmail.com';
+    this.shortcode = 'SURVO';
     this.initiateUrl = 'https://api.megapay.co.ke/backend/v1/initiatestk';
     this.statusUrl = 'https://api.megapay.co.ke/backend/v1/transactionstatus';
   }
@@ -12,7 +19,8 @@ class MegaPayService {
     try {
       const response = await axios.post(this.initiateUrl, {
         api_key: this.apiKey,
-        till_number: this.email,
+        email: this.email,
+        account_name: this.shortcode,
         amount: amount.toString(),
         msisdn: phone,
         reference: reference
@@ -20,17 +28,19 @@ class MegaPayService {
 
       const data = response.data || {};
       const success = data.success === '200' || data.success === 200 || data.status === 'success' || data.status === 200;
+      const resultCode = data.ResultCode || data.ResponseCode || data.result_code || data.response_code;
+      const isSuccess = success || resultCode == 0 || resultCode === '0';
       const isPinPrompt = data.message && data.message.toLowerCase().includes('enter your mpesa pin');
 
-      if (success || isPinPrompt) {
+      if (isSuccess || isPinPrompt) {
         return {
           success: true,
           transactionRequestId: data.transaction_request_id || data.transactionRequestId || data.transaction_request_id,
-          message: data.message || 'Payment initiated successfully'
+          message: data.message || data.msg || data.errorMessage || 'Payment initiated successfully'
         };
       }
 
-      const msg = data.message || data.error || data.errorMessage || 'Payment initiation failed';
+      const msg = data.message || data.msg || data.error || data.errorMessage || 'Payment initiation failed';
       console.error('MegaPay initiate rejected:', data);
       const err = new Error(msg);
       err.status = 400;
@@ -45,7 +55,7 @@ class MegaPayService {
         return {
           success: true,
           transactionRequestId: data.transaction_request_id || data.transactionRequestId || data.transaction_request_id,
-          message: data.message || 'Payment initiated successfully'
+          message: data.message || data.msg || data.errorMessage || 'Payment initiated successfully'
         };
       }
 
@@ -58,12 +68,14 @@ class MegaPayService {
     try {
       const response = await axios.post(this.statusUrl, {
         api_key: this.apiKey,
-        till_number: this.email,
+        email: this.email,
+        account_name: this.shortcode,
         transaction_request_id: transactionRequestId
       });
 
       return {
         resultCode: response.data.ResultCode,
+        resultDesc: response.data.ResultDesc,
         status: response.data.TransactionStatus,
         amount: response.data.TransactionAmount
       };
@@ -96,3 +108,4 @@ class MegaPayService {
 }
 
 module.exports = MegaPayService;
+module.exports.generateShortReference = generateShortReference;

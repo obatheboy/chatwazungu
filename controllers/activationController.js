@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Payment = require('../models/Payment');
 const jwt = require('jsonwebtoken');
 const MegaPayService = require('../services/megapayService');
+const { generateShortReference } = require('../services/megapayService');
 
 const megapay = new MegaPayService();
 
@@ -45,8 +46,8 @@ const initiateActivationPayment = async (req, res) => {
       cleanPhone = '254' + cleanPhone;
     }
 
-    const reference = `ACTIVATE_${userId}_${Date.now()}`;
-    const paymentResponse = await megapay.initiatePayment(cleanPhone, 50, reference);
+    const megaPayReference = generateShortReference('ACT');
+    const paymentResponse = await megapay.initiatePayment(cleanPhone, 50, megaPayReference);
 
     const transactionId = paymentResponse.transactionRequestId || `MGP-ACT-${Date.now()}-${userId.toString().slice(-6)}`;
 
@@ -58,7 +59,7 @@ const initiateActivationPayment = async (req, res) => {
       paymentMethod: 'megapay',
       transactionId,
       transactionRequestId: paymentResponse.transactionRequestId,
-      reference,
+      reference: megaPayReference,
       status: 'pending',
       metadata: { phone: cleanPhone, type: 'activation' }
     });
