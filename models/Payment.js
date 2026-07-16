@@ -22,7 +22,7 @@ const PaymentSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     required: true,
-    enum: ['mpesa', 'card', 'paypal', 'megapay']
+    enum: ['mpesa', 'card', 'paypal', 'smartpay']
   },
   transactionId: {
     type: String,
