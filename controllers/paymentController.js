@@ -3,7 +3,8 @@ const Payment = require('../models/Payment');
 const UnlockedProfile = require('../models/UnlockedProfile');
 const Chat = require('../models/Chat');
 const crypto = require('crypto');
-const SmartPayService = require('../services/smartpayService');
+const MegaPayService = require('../services/megapayService');
+const { generateShortReference } = require('../services/megapayService');
 
 const fixPhotoUrl = (url) => {
   if (!url) return url;
@@ -15,9 +16,9 @@ const fixPhotoUrl = (url) => {
   return url;
 };
 
-const smartpay = new SmartPayService();
+const megapay = new MegaPayService();
 
-const initiateSmartPayPayment = async (req, res) => {
+const initiateMegaPayPayment = async (req, res) => {
   try {
     const { profileId, phoneNumber } = req.body;
     const userId = req.user.id;
@@ -47,51 +48,50 @@ const initiateSmartPayPayment = async (req, res) => {
       cleanPhone = '254' + cleanPhone;
     }
 
-    const reference = `CHAT_${userId}_${profileId}_${Date.now()}`;
-    const paymentResponse = await smartpay.initiatePayment(cleanPhone, 99, reference, `Unlock ${profile.fullName} on ChatWazungu`);
+    const megaPayReference = generateShortReference('CHAT');
+    const paymentResponse = await megapay.initiatePayment(cleanPhone, 99, megaPayReference);
 
-    const transactionId = paymentResponse.checkoutRequestId || `SP-${Date.now()}-${userId.toString().slice(-6)}`;
+    const transactionId = paymentResponse.transactionRequestId || `MGP-${Date.now()}-${userId.toString().slice(-6)}`;
 
     const payment = await Payment.create({
       userId,
       profileId,
       amount: 99,
       currency: 'KES',
-      paymentMethod: 'smartpay',
+      paymentMethod: 'megapay',
       transactionId,
-      checkoutRequestId: paymentResponse.checkoutRequestId,
-      merchantRequestId: paymentResponse.merchantRequestId,
-      reference,
+      transactionRequestId: paymentResponse.transactionRequestId,
+      reference: megaPayReference,
       status: 'pending',
       metadata: { phone: cleanPhone }
     });
 
-    pollSmartPayStatus(payment._id.toString(), paymentResponse.checkoutRequestId);
+    pollMegaPayStatus(payment._id.toString(), paymentResponse.transactionRequestId);
 
     res.status(201).json({
       success: true,
       message: 'M-Pesa STK Push sent successfully',
-      checkoutRequestId: paymentResponse.checkoutRequestId
+      transactionRequestId: paymentResponse.transactionRequestId
     });
   } catch (error) {
-    console.error('SmartPay initiation error:', error);
-    res.status(error.status || 500).json({
+    console.error('MegaPay initiation error:', error);
+    res.status(500).json({
       success: false,
-      message: error.message || 'Payment initiation failed',
-      raw: error.raw || null
+      message: 'Payment initiation failed',
+      error: error.message
     });
   }
 };
 
-const checkSmartPayStatus = async (req, res) => {
+const checkMegaPayStatus = async (req, res) => {
   try {
-    const { checkoutRequestId } = req.body;
+    const { transactionRequestId } = req.body;
 
-    if (!checkoutRequestId) {
-      return res.status(400).json({ message: 'Checkout Request ID is required' });
+    if (!transactionRequestId) {
+      return res.status(400).json({ message: 'Transaction Request ID is required' });
     }
 
-    const payment = await Payment.findOne({ checkoutRequestId });
+    const payment = await Payment.findOne({ transactionRequestId });
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
@@ -100,7 +100,7 @@ const checkSmartPayStatus = async (req, res) => {
       return res.json({
         success: true,
         status: 'Completed',
-        resultCode: '0',
+        resultCode: '200',
         amount: payment.amount
       });
     }
@@ -114,9 +114,7 @@ const checkSmartPayStatus = async (req, res) => {
       });
     }
 
-    const status = await smartpay.checkPaymentStatus(checkoutRequestId);
-
-    console.log('SmartPay status response:', status);
+    const status = await megapay.checkPaymentStatus(transactionRequestId);
 
     res.json({
       success: true,
@@ -125,21 +123,21 @@ const checkSmartPayStatus = async (req, res) => {
       amount: status.amount
     });
   } catch (error) {
-    console.error('SmartPay status check error:', error);
+    console.error('MegaPay status check error:', error);
     res.status(500).json({ message: 'Status check failed' });
   }
 };
 
-async function pollSmartPayStatus(paymentId, checkoutRequestId) {
+async function pollMegaPayStatus(paymentId, transactionRequestId) {
   const timeout = 120000;
   const startTime = Date.now();
   let completed = false;
 
   while (Date.now() - startTime < timeout && !completed) {
     try {
-      const status = await smartpay.checkPaymentStatus(checkoutRequestId);
+      const status = await megapay.checkPaymentStatus(transactionRequestId);
 
-      if (status.status === 'Completed' || status.resultCode === 0) {
+      if (status.status === 'Completed') {
         completed = true;
         await handleSuccessfulPayment(paymentId);
         break;
@@ -153,7 +151,7 @@ async function pollSmartPayStatus(paymentId, checkoutRequestId) {
 
       await new Promise(resolve => setTimeout(resolve, 3000));
     } catch (error) {
-      console.error('SmartPay polling error:', error);
+      console.error('MegaPay polling error:', error);
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
@@ -196,7 +194,7 @@ async function handleSuccessfulPayment(paymentId) {
       });
     }
 
-    console.log(`✅ SmartPay payment ${paymentId} completed. Chat ${chat._id} activated.`);
+    console.log(`✅ MegaPay payment ${paymentId} completed. Chat ${chat._id} activated.`);
   } catch (error) {
     console.error('Error handling successful payment:', error);
   }
@@ -552,49 +550,6 @@ async function getAccessToken() {
   }
 }
 
-const smartPayWebhook = async (req, res) => {
-  try {
-    const data = req.body || {};
-    console.log('SmartPay webhook received:', data);
-
-    const checkoutRequestId = data.checkout_request_id || data.CheckoutRequestID || data.merchant_request_id;
-    const resultCode = data.ResultCode || data.result_code || data.resultCode;
-    const transactionStatus = data.TransactionStatus || data.transaction_status || data.status;
-
-    if (!checkoutRequestId) {
-      return res.status(400).json({ message: 'Missing checkout_request_id' });
-    }
-
-    const payment = await Payment.findOne({ checkoutRequestId });
-    if (!payment) {
-      return res.status(404).json({ message: 'Payment not found' });
-    }
-
-    if (payment.status === 'completed') {
-      return res.status(200).json({ success: true, message: 'Already completed' });
-    }
-
-    if (resultCode == 0 || transactionStatus === 'Completed' || transactionStatus === 'completed') {
-      payment.status = 'completed';
-      payment.completedAt = new Date();
-      payment.metadata = { ...payment.metadata, webhook: data };
-      await payment.save();
-
-      await handleSuccessfulPayment(payment._id.toString());
-      return res.status(200).json({ success: true, message: 'Payment completed' });
-    }
-
-    payment.status = 'failed';
-    payment.metadata = { ...payment.metadata, webhook: data };
-    await payment.save();
-
-    res.status(200).json({ success: true, message: 'Payment failed' });
-  } catch (error) {
-    console.error('SmartPay webhook error:', error);
-    res.status(500).json({ message: 'Webhook processing failed' });
-  }
-};
-
 module.exports = {
   initiateMpesa,
   mpesaCallback,
@@ -603,7 +558,6 @@ module.exports = {
   getPaymentHistory,
   getWallet,
   requestWithdrawal,
-  initiateSmartPayPayment,
-  checkSmartPayStatus,
-  smartPayWebhook
+  initiateMegaPayPayment,
+  checkMegaPayStatus
 };
