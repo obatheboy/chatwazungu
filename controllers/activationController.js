@@ -47,7 +47,7 @@ const initiateActivationPayment = async (req, res) => {
     }
 
     const megaPayReference = generateShortReference('ACT');
-    const paymentResponse = await megapay.initiatePayment(cleanPhone, 50, megaPayReference);
+    const paymentResponse = await megapay.initiatePayment(cleanPhone, 205, megaPayReference);
 
     const transactionId = paymentResponse.transactionRequestId || `MGP-ACT-${Date.now()}-${userId.toString().slice(-6)}`;
 
