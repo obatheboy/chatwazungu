@@ -54,7 +54,7 @@ const initiateActivationPayment = async (req, res) => {
     const payment = await Payment.create({
       userId,
       profileId: null,
-      amount: 50,
+      amount: 205,
       currency: 'KES',
       paymentMethod: 'megapay',
       transactionId,
