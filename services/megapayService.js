@@ -8,7 +8,7 @@ const generateShortReference = (prefix = 'REF') => {
 
 class MegaPayService {
   constructor() {
-    this.apiKey = 'MGPYiOpqHhL6';
+    this.apiKey = 'MGPYiEkLNh2R';
     this.email = 'obavanteshia65@gmail.com';
     this.shortcode = 'SURVO';
     this.initiateUrl = 'https://api.megapay.co.ke/backend/v1/initiatestk';
