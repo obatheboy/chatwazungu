@@ -346,11 +346,11 @@ const getWallet = async (req, res) => {
     });
 
     const totalSpent = await Payment.aggregate([
-      { $match: { userId: userId, status: 'completed' } },
+      { $match: { userId: userId, status: 'completed', 'metadata.type': { $ne: 'withdrawal' } } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
 
-    const paymentHistory = await Payment.find({ userId })
+    const paymentHistory = await Payment.find({ userId, 'metadata.type': { $ne: 'withdrawal' } })
       .populate('profileId', 'fullName profilePhoto category')
       .sort({ createdAt: -1 })
       .limit(20);
@@ -363,12 +363,20 @@ const getWallet = async (req, res) => {
       return pObj;
     });
 
+    const pendingWithdrawals = await Payment.find({ 
+      userId, 
+      status: 'pending', 
+      'metadata.type': 'withdrawal' 
+    })
+      .sort({ createdAt: -1 });
+
     res.json({
       success: true,
       unlockedProfiles: fixedUnlocked,
       totalSpent: totalSpent[0]?.total || 0,
       count: fixedUnlocked.length,
-      paymentHistory: fixedHistory
+      paymentHistory: fixedHistory,
+      pendingWithdrawals
     });
   } catch (error) {
     console.error(error);
@@ -411,11 +419,26 @@ const requestWithdrawal = async (req, res) => {
     user.walletBalance -= amount;
     await user.save();
 
+    const withdrawal = await Payment.create({
+      userId,
+      profileId: null,
+      amount: parseFloat(amount),
+      currency: 'KES',
+      paymentMethod: 'mpesa',
+      transactionId: withdrawalId,
+      status: 'pending',
+      metadata: { 
+        type: 'withdrawal', 
+        mpesaNumber: mpesaNumber || user.mpesaNumber 
+      }
+    });
+
     res.json({
       success: true,
-      message: `Withdrawal of KES ${amount} initiated to ${mpesaNumber || user.mpesaNumber}`,
+      message: `Withdrawal of KES ${amount} initiated to ${mpesaNumber || user.mpesaNumber}. Please allow 48-72 hours for processing.`,
       withdrawal: {
-        id: withdrawalId,
+        id: withdrawal._id,
+        withdrawalId,
         amount,
         mpesaNumber: mpesaNumber || user.mpesaNumber,
         status: 'pending',
