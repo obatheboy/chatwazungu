@@ -6,15 +6,25 @@ const fixPhotoUrl = (url) => {
   if (url.includes('/images/images/')) return url.replace(/\/images\/images\//g, '/images/');
   if (url.startsWith('/cache/profiles/')) {
     const file = url.replace('/cache/profiles/', '');
-    return `https://chat-wazungu-e1ix.onrender.com/images/${file}`;
+    return `/images/${file}`;
   }
   return url;
+};
+
+const computeAge = (dateOfBirth) => {
+  if (!dateOfBirth) return 'N/A';
+  const dob = new Date(dateOfBirth);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+  return age > 0 ? age : 'N/A';
 };
 
 const getProfiles = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    
+
     let query = {
       isDummy: true,
       isActive: true,
@@ -45,6 +55,7 @@ const getProfiles = async (req, res) => {
       const profileObj = profile.toObject();
       profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
+      profileObj.age = computeAge(profileObj.dateOfBirth);
       return profileObj;
     });
 
@@ -95,6 +106,7 @@ const searchProfiles = async (req, res) => {
       const profileObj = profile.toObject();
       profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
+      profileObj.age = computeAge(profileObj.dateOfBirth);
       return profileObj;
     });
 
@@ -115,7 +127,7 @@ const getProfile = async (req, res) => {
     const userId = req.user.id;
 
     const profile = await User.findById(profileId).select('-password');
-    
+
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
@@ -129,6 +141,7 @@ const getProfile = async (req, res) => {
     const profileData = profile.toObject();
     profileData.isUnlocked = !!unlocked;
     profileData.profilePhoto = fixPhotoUrl(profileData.profilePhoto);
+    profileData.age = computeAge(profileData.dateOfBirth);
 
     if (!profileData.isUnlocked) {
       profileData.bio = 'This profile is locked. Unlock to view full details and chat.';
@@ -148,12 +161,13 @@ const getProfile = async (req, res) => {
 
 const getCounties = async (req, res) => {
   const counties = [
-    'London', 'New York', 'Paris', 'Los Angeles', 'Dubai', 'Sydney',
-    'Toronto', 'Berlin', 'Amsterdam', 'Milan', 'Madrid', 'Chicago',
-    'Singapore', 'Hong Kong', 'Tokyo', 'Zurich', 'Geneva', 'Rome',
-    'Barcelona', 'Vienna', 'Munich', 'Stockholm', 'Dublin', 'Brussels',
-    'Copenhagen', 'Oslo', 'Hamburg', 'Frankfurt', 'Miami', 'Boston',
-    'San Francisco', 'Seattle', 'Washington', 'Manchester', 'Lyon', 'Nice'
+    'Nairobi', 'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita Taveta',
+    'Garissa', 'Wajir', 'Mandera', 'Marsabit', 'Isiolo', 'Meru', 'Tharaka-Nithi',
+    'Embu', 'Kitui', 'Machakos', 'Makueni', 'Nyandarua', 'Nyeri', 'Kirinyaga',
+    'Murang\'a', 'Kiambu', 'Turkana', 'West Pokot', 'Samburu', 'Trans-Nzoia',
+    'Uasin Gishu', 'Elgeyo-Marakwet', 'Nandi', 'Baringo', 'Laikipia', 'Nakuru',
+    'Narok', 'Kajiado', 'Kericho', 'Bomet', 'Kakamega', 'Vihiga', 'Bungoma',
+    'Busia', 'Siaya', 'Kisumu', 'Homa Bay', 'Migori', 'Kisii', 'Nyamira'
   ];
 
   res.json({
@@ -183,6 +197,7 @@ const getFeaturedProfiles = async (req, res) => {
       const profileObj = profile.toObject();
       profileObj.isUnlocked = unlockedIds.includes(profileObj._id.toString());
       profileObj.profilePhoto = fixPhotoUrl(profileObj.profilePhoto);
+      profileObj.age = computeAge(profileObj.dateOfBirth);
       return profileObj;
     });
 
@@ -201,5 +216,6 @@ module.exports = {
   getProfile,
   getCounties,
   searchProfiles,
-  getFeaturedProfiles
+  getFeaturedProfiles,
+  computeAge
 };

@@ -8,25 +8,41 @@ const generateToken = (id) => {
   });
 };
 
+const VALID_CATEGORIES = ['Sugar Mommy', 'Sugar Daddy'];
+
 const register = async (req, res) => {
   try {
-    const { fullName, phoneNumber } = req.body;
+    const { fullName, phoneNumber, category } = req.body;
 
-    const userExists = await User.findOne({ phoneNumber });
+    if (!fullName || !fullName.trim()) {
+      return res.status(400).json({ message: 'Full name is required' });
+    }
+
+    if (!phoneNumber || !phoneNumber.trim()) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    if (!category || !VALID_CATEGORIES.includes(category)) {
+      return res.status(400).json({ message: 'Invalid category. Must be Sugar Mommy or Sugar Daddy' });
+    }
+
+    const cleanPhone = phoneNumber.replace(/\s/g, '');
+
+    const userExists = await User.findOne({ phoneNumber: cleanPhone });
     if (userExists) {
       return res.status(400).json({ message: 'Phone number already registered' });
     }
 
     const user = await User.create({
-      fullName,
-      phoneNumber,
+      fullName: fullName.trim(),
+      phoneNumber: cleanPhone,
       password: null,
       dateOfBirth: null,
-      gender: 'other',
+      gender: category === 'Sugar Mommy' ? 'female' : 'male',
       county: '',
       bio: '',
       profilePhoto: '/default-avatar.png',
-      category: 'white-female',
+      category,
       lookingFor: '',
       isDummy: false,
       isVerified: false,

@@ -8,14 +8,11 @@ const fixPhotoUrl = (url) => {
   if (url.includes('/images/images/')) return url.replace(/\/images\/images\//g, '/images/');
   if (url.startsWith('/cache/profiles/')) {
     const file = url.replace('/cache/profiles/', '');
-    return `https://chat-wazungu-e1ix.onrender.com/images/${file}`;
+    return `/images/${file}`;
   }
   return url;
 };
 
-// @desc    Get user chats
-// @route   GET /api/chats
-// @access  Private
 const getChats = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -42,9 +39,6 @@ const getChats = async (req, res) => {
   }
 };
 
-// @desc    Create or get chat with a profile
-// @route   POST /api/chats/:profileId
-// @access  Private
 const createChat = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -101,9 +95,6 @@ const createChat = async (req, res) => {
   }
 };
 
-// @desc    Get messages for a chat
-// @route   GET /api/chats/:profileId
-// @access  Private
 const getChatMessages = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -130,9 +121,6 @@ const getChatMessages = async (req, res) => {
   }
 };
 
-// @desc    Send message and get AI response
-// @route   POST /api/chats/:profileId/message
-// @access  Private
 const sendMessage = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -185,9 +173,6 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// @desc    Check if profile is unlocked
-// @route   GET /api/chats/:profileId/unlock
-// @access  Private
 const checkUnlock = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -209,25 +194,44 @@ const checkUnlock = async (req, res) => {
   }
 };
 
-// AI Response Generator
+const userGreetings = [
+  'Hey there! 😏',
+  'Hi babe! 👋',
+  'Hello there! 😘',
+  'Hey sweet! 💋',
+  'Hi honey! 😊',
+  'Well hello there! 😙'
+];
+
 async function generateAIResponse(profile, userMessage, conversationHistory) {
   try {
-    const prompt = `You are ${profile.fullName}, a ${profile.age} year old ${profile.category} from ${profile.county}. 
-Personality: Flirty, attractive, engaging, warm.
+    const age = profile.age || (profile.dateOfBirth ? computeAge(profile.dateOfBirth) : 'N/A');
+    const firstName = profile.fullName?.split(' ')[0] || 'babe';
+
+    const recentMsgs = conversationHistory.slice(-8).map(msg => msg.content).join('\n');
+
+    const prompt = `You are ${profile.fullName}, a ${age} year old ${profile.category} from ${profile.county || 'Nairobi'}.
+Personality: Warm, flirty, playful, confident, engaging. Like a real attractive adult person you might meet at a nice Nairobi lounge.
 Bio: ${profile.bio || 'Looking for fun connections'}
-Goal: Chat naturally with someone who has paid to chat with you.
+Goal: Chat naturally and warmly with someone who has paid to chat with you. Be charming but appropriate.
 
 Rules:
-- Be flirty but appropriate
-- Ask questions about the user
-- Use their name if they mentioned it
-- Keep responses short (1-2 sentences usually)
-- Use emojis occasionally
-- Be engaging and make them feel special
+- Be warm, flirty but classy - like a real confident adult person
+- Ask questions about the user, show genuine interest
+- Keep responses short (1-2 sentences usually), natural and conversational
+- Use emojis occasionally (not too many)
+- Make them feel special and attractive
+- Don\'t be vulgar or explicit
+- If they say something playful, respond in kind with charm
+- Reference their name if mentioned
+- Stay in character as ${profile.fullName}
 
-User said: "${userMessage}"
+Previous conversation:
+${recentMsgs}
 
-Respond as ${profile.fullName}:`;
+User just said: "${userMessage}"
+
+Respond as ${profile.fullName} in a warm, natural, slightly flirty way: Only return the response text, nothing else.`;
 
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
@@ -237,14 +241,10 @@ Respond as ${profile.fullName}:`;
           {
             role: 'system',
             content: prompt
-          },
-          ...conversationHistory.slice(-10).map(msg => ({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          }))
+          }
         ],
-        max_tokens: 150,
-        temperature: 0.8
+        max_tokens: 100,
+        temperature: 0.9
       },
       {
         headers: {
@@ -255,11 +255,28 @@ Respond as ${profile.fullName}:`;
       }
     );
 
-    return response.data.choices[0]?.message?.content || "Hey there! 😊 How are you doing?";
+    const aiText = response.data.choices[0]?.message?.content?.trim() || "Hey there! 😊 What's on your mind?";
+    return aiText;
   } catch (error) {
     console.error('AI Error:', error);
-    return "Hey! I'm having a tiny technical issue but I'm still here for you 😘 What's on your mind?";
+    const greetings = [
+      "Hey there! 😏 What's new with you?",
+      "Hi babe! 😘 Tell me what's up",
+      "Hey sweet! 💋 I was just thinking about you",
+      "Hello there! 😊 You're fun to talk to"
+    ];
+    return greetings[Math.floor(Math.random() * greetings.length)];
   }
+}
+
+function computeAge(dateOfBirth) {
+  if (!dateOfBirth) return 'N/A';
+  const dob = new Date(dateOfBirth);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+  return age > 0 ? age : 'N/A';
 }
 
 module.exports = {
