@@ -8,7 +8,7 @@ const generateToken = (id) => {
   });
 };
 
-const VALID_CATEGORIES = ['Sugar Mommy', 'Sugar Daddy'];
+const VALID_CATEGORIES = ['white-female', 'white-male'];
 
 const register = async (req, res) => {
   try {
@@ -23,7 +23,7 @@ const register = async (req, res) => {
     }
 
     if (!category || !VALID_CATEGORIES.includes(category)) {
-      return res.status(400).json({ message: 'Invalid category. Must be Sugar Mommy or Sugar Daddy' });
+      return res.status(400).json({ message: 'Invalid category. Must be white-female or white-male' });
     }
 
     const cleanPhone = phoneNumber.replace(/\s/g, '');
@@ -38,7 +38,7 @@ const register = async (req, res) => {
       phoneNumber: cleanPhone,
       password: null,
       dateOfBirth: null,
-      gender: category === 'Sugar Mommy' ? 'female' : 'male',
+      gender: category === 'white-male' ? 'male' : 'female',
       county: '',
       bio: '',
       profilePhoto: '/default-avatar.png',

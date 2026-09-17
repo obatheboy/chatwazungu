@@ -47,7 +47,7 @@ const maleNames = [
   'George Karanja', 'Brian Kiptoo', 'Kevin Muthui', 'Samuel Wambua', 'James Kariuki'
 ];
 
-const sugarMommyBios = [
+const whiteFemaleBios = [
   'Elegant and successful woman looking for genuine connections',
   'Luxury lifestyle, generous with my time and affection',
   'Mature woman who knows what she wants and gets it',
@@ -99,7 +99,7 @@ const sugarMommyBios = [
   'Easy-going woman who values honesty and respect'
 ];
 
-const sugarDaddyBios = [
+const whiteMaleBios = [
   'Successful businessman looking to pamper someone special',
   'Established and ready to share my success',
   'Mature man with refined tastes and generosity',
@@ -108,7 +108,7 @@ const sugarDaddyBios = [
   'Entrepreneur seeking beauty and brains',
   'Mature gentleman with generous heart',
   'Ready to treat you like a queen',
-  'Sugar daddy with class and style',
+  'Gentleman with class and style',
   'Looking for meaningful arrangements',
   'Confident, successful, and seeking interesting people',
   'Hoping to find someone who appreciates quality time',
@@ -184,20 +184,20 @@ async function seed() {
       dateOfBirth.setHours(0, 0, 0, 0);
 
       const name = femaleNames[i % femaleNames.length];
-      const bio = sugarMommyBios[i % sugarMommyBios.length];
+      const bio = whiteFemaleBios[i % whiteFemaleBios.length];
       const county = counties[Math.floor(Math.random() * counties.length)];
 
       await User.create({
         fullName: name,
-        phoneNumber: `sugar+mummy${i}@chatwazungu.com`,
+        phoneNumber: `wazungu+woman${i}@chatwazungu.com`,
         password: await bcrypt.hash('dummy123', 10),
         dateOfBirth,
         gender: 'female',
         county,
         bio,
         profilePhoto: `/cache/profiles/woman_${(i % 60) + 1}.jpg`,
-        category: 'Sugar Mommy',
-        lookingFor: 'Sugar Daddy',
+        category: 'white-female',
+        lookingFor: 'white-male',
         isDummy: true,
         isVerified: true,
         isActive: true,
@@ -205,7 +205,7 @@ async function seed() {
         tags: ['New']
       });
       createdCount++;
-      process.stdout.write(`\rSugar Mommy: ${createdCount}/45...`);
+      process.stdout.write(`\rWazungu Woman: ${createdCount}/45...`);
     }
 
     for (let i = 0; i < 45; i++) {
@@ -215,20 +215,20 @@ async function seed() {
       dateOfBirth.setHours(0, 0, 0, 0);
 
       const name = maleNames[i % maleNames.length];
-      const bio = sugarDaddyBios[i % sugarDaddyBios.length];
+      const bio = whiteMaleBios[i % whiteMaleBios.length];
       const county = counties[Math.floor(Math.random() * counties.length)];
 
       await User.create({
         fullName: name,
-        phoneNumber: `sugar+daddy${i}@chatwazungu.com`,
+        phoneNumber: `wazungu+man${i}@chatwazungu.com`,
         password: await bcrypt.hash('dummy123', 10),
         dateOfBirth,
         gender: 'male',
         county,
         bio,
         profilePhoto: `/cache/profiles/man_${(i % 40) + 1}.jpg`,
-        category: 'Sugar Daddy',
-        lookingFor: 'Sugar Mommy',
+        category: 'white-male',
+        lookingFor: 'white-female',
         isDummy: true,
         isVerified: true,
         isActive: true,
@@ -236,10 +236,10 @@ async function seed() {
         tags: ['New']
       });
       createdCount++;
-      process.stdout.write(`\rSugar Daddy: ${i + 1}/45...`);
+      process.stdout.write(`\rWazungu Man: ${i + 1}/45...`);
     }
 
-    console.log(`\nDone! Created 90 profiles (45 Sugar Mommy, 45 Sugar Daddy)`);
+    console.log(`\nDone! Created 90 profiles (45 Wazungu Woman, 45 Wazungu Man)`);
     await mongoose.disconnect();
   } catch (error) {
     console.error('Error:', error);

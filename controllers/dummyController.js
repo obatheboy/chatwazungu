@@ -29,14 +29,14 @@ const lastNames = [
 ];
 
 const dummyProfiles = {
-  'Sugar Mommy': [
+  'white-female': [
     { names: femaleFirstNames.map((fn, i) => `${fn} ${lastNames[i % lastNames.length]}`), ages: Array.from({length: 40}, () => Math.floor(Math.random() * 15) + 35), bios: ['Elegant and successful woman seeking companionship and fun', 'Luxury lifestyle, generous with my time and affection', 'Mature woman who knows what she wants and gets it', 'Spoil me with attention and I\'ll spoil you back', 'Independent, confident, and ready for fun adventures', 'Looking for a young energetic companion to spoil', 'Business executive with a heart of gold', 'Mature beauty seeking youthful energy and charm', 'Successful entrepreneur looking for exciting connections', 'Classy woman with modern tastes and desires'] },
   ],
-  'Sugar Daddy': [
-    { names: maleFirstNames.map((fn, i) => `${fn} ${lastNames[i % lastNames.length]}`), ages: Array.from({length: 40}, () => Math.floor(Math.random() * 15) + 40), bios: ['Successful businessman looking to pamper someone special', 'Established and ready to share my success', 'Mature man with refined tastes and generosity', 'Looking for a young companion to spoil', 'Financial stability meets emotional connection', 'Entrepreneur seeking beauty and brains', 'Mature gentleman with generous heart', 'Ready to treat you like a queen', 'Sugar daddy with class and style', 'Looking for meaningful arrangements'] },
+  'white-male': [
+    { names: maleFirstNames.map((fn, i) => `${fn} ${lastNames[i % lastNames.length]}`), ages: Array.from({length: 40}, () => Math.floor(Math.random() * 15) + 40), bios: ['Successful businessman looking to pamper someone special', 'Established and ready to share my success', 'Mature man with refined tastes and generosity', 'Looking for a young companion to spoil', 'Financial stability meets emotional connection', 'Entrepreneur seeking beauty and brains', 'Mature gentleman with generous heart', 'Ready to treat you like a queen', 'Gentleman with class and style', 'Looking for meaningful arrangements'] },
   ],
   'Young Boy': [
-    { names: maleFirstNames.slice(0, 20).map((fn, i) => `${fn} ${lastNames[i % lastNames.length]}`), ages: Array.from({length: 40}, () => Math.floor(Math.random() * 8) + 20), bios: ['Young and energetic college student', 'Looking for mature connections', 'Fit and ready for adventure', 'Young soul with old heart', 'Student seeking mentorship and fun', 'Energetic and enthusiastic', 'Ready to learn from someone experienced', 'Young and hungry for success', 'College boy with big dreams', 'Seeking sugar mommy guidance'] },
+    { names: maleFirstNames.slice(0, 20).map((fn, i) => `${fn} ${lastNames[i % lastNames.length]}`), ages: Array.from({length: 40}, () => Math.floor(Math.random() * 8) + 20), bios: ['Young and energetic college student', 'Looking for mature connections', 'Fit and ready for adventure', 'Young soul with old heart', 'Student seeking mentorship and fun', 'Energetic and enthusiastic', 'Ready to learn from someone experienced', 'Young and hungry for success', 'College boy with big dreams', 'Seeking guidance from someone experienced'] },
   ],
   'Young Man': [
     { names: maleFirstNames.slice(10, 30).map((fn, i) => `${fn} ${lastNames[(i + 10) % lastNames.length]}`), ages: Array.from({length: 40}, () => Math.floor(Math.random() * 10) + 22), bios: ['Young professional with big dreams', 'Focused on success and connections', 'Fitness enthusiast and goal setter', 'Looking for meaningful relationships', 'Ambitious young man on the rise', 'Career-driven and relationship-ready', 'Young man with maturity beyond years', 'Seeking genuine connections', 'Professional with a playful side', 'Ready for something real'] },
@@ -47,10 +47,10 @@ const counties = ['Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita Tav
 
 function getLookingFor(category) {
   const map = {
-    'Sugar Mommy': ['Young Boy', 'Young Man'],
-    'Sugar Daddy': ['Young Boy', 'Young Man'],
-    'Young Boy': ['Sugar Mommy', 'Sugar Daddy'],
-    'Young Man': ['Sugar Mommy', 'Sugar Daddy']
+    'white-female': ['Young Boy', 'Young Man'],
+    'white-male': ['Young Boy', 'Young Man'],
+    'Young Boy': ['white-female', 'white-male'],
+    'Young Man': ['white-female', 'white-male']
   };
   return map[category] || ['Young Woman'];
 }
@@ -76,7 +76,7 @@ const generateDummyProfiles = async (req, res) => {
         const age = template.ages[i % template.ages.length];
         const bio = template.bios[i % template.bios.length];
         const county = counties[Math.floor(Math.random() * counties.length)];
-        const gender = category.includes('Boy') || category.includes('Man') ? 'male' : 'female';
+          const gender = category === 'white-female' || category === 'Young Girl' ? 'female' : 'male';
         
         let photo;
         if (gender === 'female') {

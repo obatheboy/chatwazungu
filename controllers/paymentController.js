@@ -56,7 +56,7 @@ const initiateMegaPayPayment = async (req, res) => {
     const payment = await Payment.create({
       userId,
       profileId,
-      amount: 99,
+      amount: 98,
       currency: 'KES',
       paymentMethod: 'megapay',
       transactionId,
@@ -202,7 +202,7 @@ async function handleSuccessfulPayment(paymentId) {
 
 const initiateMpesa = async (req, res) => {
   try {
-    const { profileId, phoneNumber, amount = 99 } = req.body;
+    const { profileId, phoneNumber, amount = 98 } = req.body;
     const userId = req.user.id;
 
     if (!profileId || !phoneNumber) {
@@ -465,7 +465,7 @@ const submitManualPayment = async (req, res) => {
     const payment = await Payment.create({
       userId,
       profileId,
-      amount: 99,
+      amount: 98,
       currency: 'KES',
       paymentMethod: 'manual',
       transactionId,
@@ -482,7 +482,7 @@ const submitManualPayment = async (req, res) => {
       payment: {
         id: payment._id,
         transactionId,
-        amount: 99,
+        amount: 98,
         status: 'completed'
       }
     });
