@@ -36,16 +36,28 @@ const UserSchema = new mongoose.Schema({
   },
   profilePhoto: {
     type: String,
-    default: '/default-avatar.png'
+    default: '/default-avatar.svg'
   },
   category: {
     type: String,
-    enum: ['Sugar Mommy', 'Sugar Daddy', 'Young Boy', 'Young Man', 'white-female', 'white-male'],
-    default: 'white-female'
+    enum: ['Sugar Mommy', 'Sugar Daddy', 'Young Boy', 'Young Man', 'white-female', 'white-male', ''],
+    default: 'Sugar Mommy'
   },
   lookingFor: {
+    type: [String],
+    default: []
+  },
+  interests: {
+    type: [String],
+    default: []
+  },
+  whatsappNumber: {
     type: String,
     default: ''
+  },
+  showWhatsapp: {
+    type: Boolean,
+    default: false
   },
   isDummy: {
     type: Boolean,
@@ -115,5 +127,7 @@ const UserSchema = new mongoose.Schema({
 UserSchema.index({ isDummy: 1, isActive: 1, isSuspended: 1, createdAt: -1 });
 UserSchema.index({ isDummy: 1, isActive: 1, isSuspended: 1, category: 1, createdAt: -1 });
 UserSchema.index({ isDummy: 1, isActive: 1, isSuspended: 1, onlineStatus: 1, createdAt: -1 });
+UserSchema.index({ interests: 1 });
+UserSchema.index({ lookingFor: 1 });
 
 module.exports = mongoose.model('User', UserSchema);

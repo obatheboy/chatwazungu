@@ -8,11 +8,11 @@ const generateToken = (id) => {
   });
 };
 
-const VALID_CATEGORIES = ['white-female', 'white-male'];
+const VALID_CATEGORIES = ['Sugar Mommy', 'Sugar Daddy'];
 
 const register = async (req, res) => {
   try {
-    const { fullName, phoneNumber, category } = req.body;
+    const { fullName, phoneNumber, category, gender, lookingFor, interests } = req.body;
 
     if (!fullName || !fullName.trim()) {
       return res.status(400).json({ message: 'Full name is required' });
@@ -23,7 +23,7 @@ const register = async (req, res) => {
     }
 
     if (!category || !VALID_CATEGORIES.includes(category)) {
-      return res.status(400).json({ message: 'Invalid category. Must be white-female or white-male' });
+      return res.status(400).json({ message: 'Invalid category. Must be Sugar Mommy or Sugar Daddy' });
     }
 
     const cleanPhone = phoneNumber.replace(/\s/g, '');
@@ -33,21 +33,41 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Phone number already registered' });
     }
 
+    let derivedGender = gender;
+    let derivedLookingFor = lookingFor;
+    if (!derivedGender) {
+      derivedGender = category === 'Sugar Daddy' ? 'male' : 'female';
+    }
+    if (!derivedLookingFor || (Array.isArray(derivedLookingFor) && derivedLookingFor.length === 0)) {
+      derivedLookingFor = category === 'Sugar Daddy' ? ['Sugar Mommy'] : ['Sugar Daddy'];
+    } else if (typeof derivedLookingFor === 'string') {
+      derivedLookingFor = derivedLookingFor.split(',').map((x) => x.trim()).filter(Boolean);
+    }
+
+    let derivedInterests = interests;
+    if (typeof derivedInterests === 'string') {
+      derivedInterests = derivedInterests.split(',').map((x) => x.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(derivedInterests)) derivedInterests = [];
+
     const user = await User.create({
       fullName: fullName.trim(),
       phoneNumber: cleanPhone,
       password: null,
       dateOfBirth: null,
-      gender: category === 'white-male' ? 'male' : 'female',
+      gender: derivedGender,
       county: '',
       bio: '',
-      profilePhoto: '/default-avatar.png',
+      profilePhoto: '/default-avatar.svg',
       category,
-      lookingFor: '',
+      lookingFor: derivedLookingFor,
+      interests: derivedInterests,
+      whatsappNumber: '',
+      showWhatsapp: false,
       isDummy: false,
       isVerified: false,
       isActive: true,
-      isActivated: false
+      isActivated: true
     });
 
     if (user) {
@@ -63,7 +83,10 @@ const register = async (req, res) => {
           totalEarnings: user.totalEarnings,
           canWithdraw: user.canWithdraw,
           category: user.category,
-          isActivated: user.isActivated
+          isActivated: user.isActivated,
+          lookingFor: user.lookingFor,
+          interests: user.interests,
+          gender: user.gender
         },
         token: generateToken(user._id)
       });
@@ -105,7 +128,10 @@ const login = async (req, res) => {
         canWithdraw: user.canWithdraw,
         category: user.category,
         profilePhoto: user.profilePhoto,
-        isActivated: user.isActivated
+        isActivated: user.isActivated,
+        lookingFor: user.lookingFor,
+        interests: user.interests,
+        gender: user.gender
       },
       token: generateToken(user._id)
     });

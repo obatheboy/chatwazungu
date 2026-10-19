@@ -16,6 +16,7 @@ const adminRoutes = require('./routes/admin');
 const smsRoutes = require('./routes/sms');
 const dummyRoutes = require('./routes/dummy');
 const imageRoutes = require('./routes/images');
+const matchRoutes = require('./routes/matchRoutes');
 
 // Create express app
 const app = express();
@@ -102,6 +103,7 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/dummy', dummyRoutes);
+app.use('/api/matches', matchRoutes);
 
 // Cache profile API responses for 30 seconds
 app.use('/api/profiles', (req, res, next) => {
@@ -122,9 +124,9 @@ app.use('/images', imageRoutes);
 
 // Test Route
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'ChatWazungu API is running! 💬',
+  res.json({
+    status: 'OK',
+    message: 'The Sugar Life API is running 💫',
     timestamp: new Date().toISOString()
   });
 });
@@ -138,7 +140,7 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 ChatWazungu server running on http://localhost:${PORT}`);
+  console.log(`🚀 The Sugar Life server running on http://localhost:${PORT}`);
 });
 
 module.exports = { app, server, io };
